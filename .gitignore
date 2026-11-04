@@ -45,3 +45,5 @@ docs/_build/
 docs/generated/
 docs/tutorial.ipynb
 docs/jupyter_execute/
+# Figures saved by the tutorial when it is executed
+good_rps_replicator_dynamics.*

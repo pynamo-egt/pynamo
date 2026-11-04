@@ -172,14 +172,18 @@ def compute_equilibria(payoff_data: Union[PayoffMatrix, PayoffCollection]) -> Eq
             [[p.x] for p in points], degenerate=continuum,
             message="Every frequency in [0, 1] is an equilibrium." if continuum else None,
         )
-    if game_class in ("1Pop3S", "1Pop4S"):
-        points, degenerate = _rest_points.symmetric_rest_points(payoff_data)
+    if game_class in ("1Pop3S", "1Pop4S", "2Pop2S"):
+        if game_class == "2Pop2S":
+            points, degenerate = _rest_points.bimatrix_rest_points(payoff_data)
+        else:
+            full_points, degenerate = _rest_points.symmetric_rest_points(payoff_data)
+            points = [point[:-1] for point in full_points]
         message = None
         if degenerate:
             message = _DEGENERATE_MESSAGE
             warnings.warn(message, DegenerateEquilibriumWarning, stacklevel=2)
         return EquilibriumResult(
-            [[float(value) for value in point[:-1]] for point in points],
+            [[float(value) for value in point] for point in points],
             degenerate=degenerate,
             message=message,
         )
@@ -269,18 +273,7 @@ def compute_equilibria(payoff_data: Union[PayoffMatrix, PayoffCollection]) -> Eq
             ):
                 equilibria.append(list(point))
 
-    if game_class == "2Pop2S":
-        pay_p1, pay_p2 = payoff_data
-        dx = _replicator_2p2s_population([x_sym, y_sym], time_0, pay_p1)
-        dy = _replicator_2p2s_population([y_sym, x_sym], time_0, pay_p2)
-        solutions = [{}] if dx == 0 and dy == 0 else solve([dx, dy], x_sym, y_sym, dict=True)
-        symbols = (x_sym, y_sym)
-        equilibria, parametric, degenerate = _split_solution_branches(solutions, symbols)
-        if degenerate:
-            _mark_degenerate()
-        _add_missing_points(product((0.0, 1.0), repeat=2), parametric, symbols)
-
-    elif game_class == "3Pop2S":
+    if game_class == "3Pop2S":
         z_sym = Symbol('z')
         dx, dy, dz = replicator_3p2s([x_sym, y_sym, z_sym], time_0, payoff_data)
         solutions = [{}] if dx == 0 and dy == 0 and dz == 0 else solve([dx, dy, dz], x_sym, y_sym, z_sym, dict=True)

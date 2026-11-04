@@ -132,14 +132,14 @@ def symmetric_rest_points(payoff_matrix: np.ndarray) -> tuple[list[Point], bool]
     return enumerate_rest_points(symmetric_faces(payoff_matrix), vertices)
 
 
-def _indifference(payoff_matrix):
+def _indifference(payoff_matrix: np.ndarray) -> tuple[Fraction, Fraction]:
     """Coefficients (slope, intercept) of u(first) - u(second) in the opponent's
     probability of their first strategy, for a focal-player 2×2 matrix."""
     (a, b), (c, d) = [[to_fraction(value) for value in row] for row in payoff_matrix]
     return a - b - c + d, b - d
 
 
-def bimatrix_faces(payoff_data):
+def bimatrix_faces(payoff_data: Sequence[np.ndarray]) -> Iterator[FaceSystem]:
     """Yield the rest-point system on every face of a 2Pop2S square.
 
     Each population either plays a pure strategy (its coordinate is 0 or 1)
@@ -154,7 +154,7 @@ def bimatrix_faces(payoff_data):
             yield FaceSystem([x_row, y_row], [x_rhs, y_rhs])
 
 
-def bimatrix_rest_points(payoff_data):
+def bimatrix_rest_points(payoff_data: Sequence[np.ndarray]) -> tuple[list[Point], bool]:
     """Rest points of a 2Pop2S game as (x, y), the first-strategy probabilities."""
     vertices = [[Fraction(x), Fraction(y)] for x in (0, 1) for y in (0, 1)]
     return enumerate_rest_points(bimatrix_faces(payoff_data), vertices)

@@ -85,7 +85,7 @@ def test_matches_sympy_on_catalogue_games():
             assert list(_compute(game.payoff_data)) == expected, name
 
 
-def _random_bimatrix_games(count, seed, integers=True):
+def _random_bimatrix_games(count: int, seed: int, integers: bool = True) -> Iterator[tuple[np.ndarray, ...]]:
     rng = np.random.default_rng(seed)
     for _ in range(count):
         if integers:

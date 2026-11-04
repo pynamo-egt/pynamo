@@ -104,7 +104,7 @@ class FaceSystem:
 
 
 def _is_zero(value: Scalar) -> bool:
-    # Irrational rest points (roots of a quadratic) are carried as floats.
+    """Exact test for Fractions; 1e-9 tolerance for irrational (float) values."""
     return value == 0 if isinstance(value, Fraction) else abs(value) <= 1e-9
 
 
@@ -257,6 +257,7 @@ class MixedCubeFace:
         )
 
     def _residuals(self, point: Point) -> tuple[Scalar, Scalar, Scalar]:
+        """E1, E2 and E3 evaluated at ``point``."""
         x, y, z = point
         (a1, b1, c1, d1), (a2, b2, c2, d2), (a3, b3, c3, d3) = self.e1, self.e2, self.e3
         return (
@@ -266,6 +267,7 @@ class MixedCubeFace:
         )
 
     def _solve(self) -> tuple[list[Point], bool]:
+        """Return the isolated zeros and whether a continuum exists."""
         (a1, b1, c1, d1), (a2, b2, c2, d2), (a3, b3, c3, d3) = self.e1, self.e2, self.e3
         A1, B1 = (a1, c1), (b1, d1)
         A2, B2 = (a2, c2), (b2, d2)

@@ -19,6 +19,7 @@ version = ".".join(release.split(".")[:2])
 extensions = [
     "myst_nb",
     "numpydoc",
+    "sphinx_gallery.gen_gallery",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
@@ -27,7 +28,13 @@ extensions = [
 ]
 
 source_suffix = {".rst": "restructuredtext", ".md": "myst-nb", ".ipynb": "myst-nb"}
-exclude_patterns = ["_build", "generated/*.rst.bak"]
+exclude_patterns = [
+    "_build",
+    # sphinx-gallery inputs and its downloadable notebooks are not pages.
+    "examples",
+    "auto_examples/*.ipynb",
+    "**/sg_execution_times.rst",
+]
 
 autosummary_generate = True
 templates_path = ["_templates"]
@@ -42,6 +49,15 @@ nb_execution_show_tb = True
 nb_merge_streams = True
 # ipympl figures have no saved widget state in a static page; show their PNG.
 nb_mime_priority_overrides = [("html", "application/vnd.jupyter.widget-view+json", None)]
+
+sphinx_gallery_conf = {
+    "examples_dirs": "examples",
+    "gallery_dirs": "auto_examples",
+    "filename_pattern": r"/plot_",
+    "within_subsection_order": "FileNameSortKey",
+    "download_all_examples": False,
+    "remove_config_comments": True,
+}
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),

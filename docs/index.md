@@ -17,6 +17,7 @@ plt.show()
 
 installation
 tutorial
+auto_examples/index
 api
 ```
 

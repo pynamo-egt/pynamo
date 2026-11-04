@@ -49,6 +49,7 @@ docs = [
     "numpydoc>=1.8",
     "pydata-sphinx-theme>=0.16",
     "sphinx>=8",
+    "sphinx-gallery>=0.17",
 ]
 
 [project.urls]

@@ -434,7 +434,7 @@ def infer_game_class(game) -> str:
     return "unsupported"
 
 
-SUPPORTED_GAME_CLASSES = {
+SUPPORTED_GAME_CLASSES: dict[str, str] = {
     "1Pop2S": "one population, 2 strategies (one 2×2 matrix)",
     "1Pop3S": "one population, 3 strategies (one 3×3 matrix)",
     "1Pop4S": "one population, 4 strategies (one 4×4 matrix)",
@@ -443,13 +443,15 @@ SUPPORTED_GAME_CLASSES = {
 }
 
 
-def require_supported_game_class(game) -> str:
+def require_supported_game_class(
+    game: Union[Game, PayoffMatrix, PayoffCollection],
+) -> str:
     """Return the game class, or raise ``ValueError`` if pyNamo cannot handle it."""
     game_class = infer_game_class(game)
     if game_class in SUPPORTED_GAME_CLASSES:
         return game_class
 
-    payoff_data = getattr(game, "payoff_data", game)
+    payoff_data = game.payoff_data if isinstance(game, Game) else game
     if isinstance(payoff_data, np.ndarray):
         received = f"a symmetric game with a payoff matrix of shape {payoff_data.shape}"
     else:

@@ -43,3 +43,5 @@ TODO.*
 # Sphinx
 docs/_build/
 docs/generated/
+docs/tutorial.ipynb
+docs/jupyter_execute/

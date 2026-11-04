@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 
 from . import _rest_points
-from .game import PayoffCollection, PayoffMatrix, infer_game_class
+from .game import PayoffCollection, PayoffMatrix, require_supported_game_class
 
 __all__ = [
     "DegenerateEquilibriumWarning",
@@ -165,7 +165,7 @@ def reverse_replicator_3p2s(state, t, payoff_tensors):
 
 def compute_equilibria(payoff_data: Union[PayoffMatrix, PayoffCollection]) -> EquilibriumResult:
     """Return rest points (equilibria) of the replicator dynamics for the given payoff tensors."""
-    game_class = infer_game_class(payoff_data)
+    game_class = require_supported_game_class(payoff_data)
     if game_class == "1Pop2S":
         points, continuum = _analyze_1d(payoff_data)
         return EquilibriumResult(
@@ -176,11 +176,9 @@ def compute_equilibria(payoff_data: Union[PayoffMatrix, PayoffCollection]) -> Eq
         points, degenerate = _rest_points.bimatrix_rest_points(payoff_data)
     elif game_class == "3Pop2S":
         points, degenerate = _rest_points.cube_rest_points(payoff_data)
-    elif game_class in ("1Pop3S", "1Pop4S"):
+    else:
         full_points, degenerate = _rest_points.symmetric_rest_points(payoff_data)
         points = [point[:-1] for point in full_points]
-    else:
-        return EquilibriumResult([])
     message = None
     if degenerate:
         message = _DEGENERATE_MESSAGE

@@ -432,3 +432,30 @@ def infer_game_class(game) -> str:
             return "3Pop2S"
 
     return "unsupported"
+
+
+SUPPORTED_GAME_CLASSES = {
+    "1Pop2S": "one population, 2 strategies (one 2×2 matrix)",
+    "1Pop3S": "one population, 3 strategies (one 3×3 matrix)",
+    "1Pop4S": "one population, 4 strategies (one 4×4 matrix)",
+    "2Pop2S": "two populations, 2 strategies each (two 2×2 matrices)",
+    "3Pop2S": "three populations, 2 strategies each (three 2×2×2 tensors)",
+}
+
+
+def require_supported_game_class(game) -> str:
+    """Return the game class, or raise ``ValueError`` if pyNamo cannot handle it."""
+    game_class = infer_game_class(game)
+    if game_class in SUPPORTED_GAME_CLASSES:
+        return game_class
+
+    payoff_data = getattr(game, "payoff_data", game)
+    if isinstance(payoff_data, np.ndarray):
+        received = f"a symmetric game with a payoff matrix of shape {payoff_data.shape}"
+    else:
+        arrays = [np.shape(array) for array in payoff_data]
+        received = f"an asymmetric game with {len(arrays)} payoff arrays of shape {arrays[0]}" if arrays else "empty payoff data"
+    supported = "; ".join(f"{name}: {text}" for name, text in SUPPORTED_GAME_CLASSES.items())
+    raise ValueError(
+        f"pyNamo cannot analyse or draw {received} yet. Supported game classes: {supported}."
+    )

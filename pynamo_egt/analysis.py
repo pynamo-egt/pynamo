@@ -757,16 +757,6 @@ def _is_ess_symmetric(reduced, payoff_data, game_class, tol: float = 1e-8) -> Op
     return _ess_on_critical_cone(payoff_data, support, best_responses, tol)
 
 
-def _tangent_basis(size):
-    if size <= 1:
-        return np.empty((size, 0))
-    basis = np.zeros((size, size - 1))
-    for idx in range(size - 1):
-        basis[idx, idx] = 1.0
-        basis[-1, idx] = -1.0
-    return basis
-
-
 def _unresolved_warning(reduced, game_class):
     full = _full_position(reduced, game_class)
     return (

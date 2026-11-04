@@ -5,7 +5,6 @@ available for advanced users who want direct control over state spaces,
 trajectories, speed fields, vector fields, and equilibrium markers.
 """
 
-import math
 import warnings
 import numpy as np
 from scipy.integrate import odeint
@@ -14,7 +13,6 @@ import matplotlib.pyplot as plt
 from matplotlib import colors as mcolors
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
-from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from . import analysis
@@ -1724,17 +1722,6 @@ def _quiver_3d(ax, points, vectors, color, alpha, length, zorder, normalize):
         normalize=False,
         zorder=zorder,
     )
-
-
-def _matrix_to_colors(matrix, cmap):
-    """Converts a matrix into a RGBA color map."""
-    color_dimension = matrix # It must be in 2D - as for "X, Y, Z".
-    minn, maxx = color_dimension.min(), color_dimension.max()
-    norm = matplotlib.colors.Normalize(minn, maxx)
-    m = plt.cm.ScalarMappable(norm=norm, cmap = cmap)
-    m.set_array([])
-    fcolors = m.to_rgba(color_dimension)
-    return fcolors, m
 
 
 def _outside_2p3s_simplex(X, Y):

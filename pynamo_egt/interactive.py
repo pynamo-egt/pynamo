@@ -16,7 +16,7 @@ __all__ = ["detach_widget_figure", "launch_replicator_widget"]
 
 try:  # pragma: no cover - optional dependency
     import ipywidgets as widgets
-    from IPython.display import HTML, Markdown, Math, clear_output, display
+    from IPython.display import clear_output, display
 except ImportError as exc:  # pragma: no cover - optional path
     widgets = None  # type: ignore[assignment]
     _IPYWIDGETS_IMPORT_ERROR = exc
@@ -97,76 +97,6 @@ def _plot(
     )
     ax.set_title(f"{game_key} - {game.name}", pad=18)
     return fig, ax
-
-
-def _display_payoff_data(game) -> None:
-    payoff = game.payoff_data
-    game_class = game.game_class
-
-    if game_class in ("1Pop2S", "1Pop3S", "1Pop4S"):
-        display(Math(_symmetric_payoff_latex(payoff, game.strategy_labels)))
-        return
-
-    if game_class == "2Pop2S":
-        display(Math(_bimatrix_payoff_latex(payoff, game.player_strategy_labels)))
-        return
-
-    if game_class == "3Pop2S":
-        # Use HTML for 3Pop2S payoff tables because nested LaTeX arrays render
-        # inconsistently across VS Code, Binder, and JupyterLab.
-        display(HTML(_three_player_payoff_html(payoff)))
-        return
-
-    if isinstance(payoff, np.ndarray):
-        display(payoff)
-        return
-
-    for idx, player_payoff in enumerate(payoff, start=1):
-        display(Markdown(f"**Player {idx}**"))
-        display(player_payoff)
-
-
-def _display_section_title(title: str) -> None:
-    display(Markdown(f"<br><h3>{title}</h3><br>"))
-
-
-def _display_analysis_table(game) -> None:
-    rows = analysis.analyze_equilibria(game).to_rows()
-    display(Math(_analysis_table_latex(rows)))
-
-
-def _append_section_title(output, title: str) -> None:
-    output.append_display_data(Markdown(f"<br><h3>{title}</h3><br>"))
-
-
-def _append_payoff_data(output, game) -> None:
-    payoff = game.payoff_data
-    game_class = game.game_class
-
-    if game_class in ("1Pop2S", "1Pop3S", "1Pop4S"):
-        output.append_display_data(Math(_symmetric_payoff_latex(payoff, game.strategy_labels)))
-        return
-
-    if game_class == "2Pop2S":
-        output.append_display_data(Math(_bimatrix_payoff_latex(payoff, game.player_strategy_labels)))
-        return
-
-    if game_class == "3Pop2S":
-        output.append_display_data(HTML(_three_player_payoff_html(payoff)))
-        return
-
-    if isinstance(payoff, np.ndarray):
-        output.append_display_data(payoff)
-        return
-
-    for idx, player_payoff in enumerate(payoff, start=1):
-        output.append_display_data(Markdown(f"**Player {idx}**"))
-        output.append_display_data(player_payoff)
-
-
-def _append_analysis_table(output, game) -> None:
-    rows = analysis.analyze_equilibria(game).to_rows()
-    output.append_display_data(Math(_analysis_table_latex(rows)))
 
 
 def _info_outputs(game, show_payoff_data: bool, show_analysis_table: bool) -> tuple[dict, ...]:

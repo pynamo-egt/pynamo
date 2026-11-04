@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -367,7 +368,18 @@ class Game:
 
 
 def game_names(games: Iterable[Tuple[int, Game]]) -> dict:
-    """Return a simple id->name mapping derived from a catalogue of games."""
+    """Return a simple id->name mapping derived from a catalogue of games.
+
+    .. deprecated:: 0.3.5
+        Unused by pyNamo; it will be removed in 1.0. Use
+        ``{idx: game.name for idx, game in games}`` instead.
+    """
+    warnings.warn(
+        "pynamo_egt.game.game_names is deprecated and will be removed in 1.0; "
+        "use {idx: game.name for idx, game in games} instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return {idx: game.name for idx, game in games}
 
 

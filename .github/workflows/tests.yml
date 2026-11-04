@@ -46,6 +46,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
+          activate-environment: true
       - name: Install the lowest versions allowed by pyproject.toml
         run: uv pip install --resolution lowest-direct -e ".[dev,plotly]"
       - name: Show resolved versions

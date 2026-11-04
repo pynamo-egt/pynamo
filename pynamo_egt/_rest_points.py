@@ -10,14 +10,30 @@ without a general-purpose symbolic solver, so analysis cannot hang.
 from __future__ import annotations
 
 from fractions import Fraction
-from itertools import combinations
-from typing import Iterable, Iterator, Literal, Optional, Sequence
+import math
+from itertools import combinations, product
+from typing import Iterable, Iterator, Literal, Optional, Protocol, Sequence, Union
 
 import numpy as np
 
-Point = list[Fraction]
+# Rational rest points are exact; irrational roots of a quadratic are floats.
+Scalar = Union[Fraction, float]
+Point = Sequence[Scalar]
 Matrix = list[list[Fraction]]
 SolveKind = Literal["unique", "continuum", "none"]
+# a + b*u + c*w + d*u*w, and constant + slope*z.
+Bilinear = tuple[Fraction, Fraction, Fraction, Fraction]
+Linear = tuple[Fraction, Fraction]
+
+
+class Face(Protocol):
+    """Rest-point conditions on one face of the state space."""
+
+    def solutions(self) -> tuple[list[Point], bool]:
+        """Return ``(isolated_points, has_continuum)``."""
+
+    def contains(self, point: Point) -> bool:
+        """Whether ``point`` lies on a continuum of this face."""
 
 
 def to_fraction(value: float) -> Fraction:
@@ -74,12 +90,22 @@ class FaceSystem:
         self.matrix = matrix
         self.rhs = rhs
 
+    def solutions(self) -> tuple[list[Point], bool]:
+        """Return ``(isolated_points, has_continuum)``."""
+        kind, point = solve_linear(self.matrix, self.rhs)
+        return ([point] if point is not None else []), kind == "continuum"
+
     def contains(self, point: Point) -> bool:
         """Whether ``point`` satisfies every equation of this face."""
         return all(
-            sum(a * x for a, x in zip(row, point)) == b
+            _is_zero(sum(a * x for a, x in zip(row, point)) - b)
             for row, b in zip(self.matrix, self.rhs)
         )
+
+
+def _is_zero(value: Scalar) -> bool:
+    # Irrational rest points (roots of a quadratic) are carried as floats.
+    return value == 0 if isinstance(value, Fraction) else abs(value) <= 1e-9
 
 
 def symmetric_faces(payoff_matrix: np.ndarray) -> Iterator[FaceSystem]:
@@ -98,7 +124,7 @@ def symmetric_faces(payoff_matrix: np.ndarray) -> Iterator[FaceSystem]:
 
 
 def enumerate_rest_points(
-    faces: Iterable[FaceSystem], vertices: Sequence[Point]
+    faces: Iterable[Face], vertices: Sequence[Point]
 ) -> tuple[list[Point], bool]:
     """Collect rest points face by face, preserving the legacy output contract.
 
@@ -108,16 +134,16 @@ def enumerate_rest_points(
     always listed. ``degenerate`` is True when some face carries a continuum.
     """
     isolated: list[Point] = []
-    continua: list[FaceSystem] = []
+    continua: list[Face] = []
     for face in faces:
-        kind, point = solve_linear(face.matrix, face.rhs)
-        if kind == "continuum":
+        points, has_continuum = face.solutions()
+        if has_continuum:
             continua.append(face)
-        elif point is not None and point not in isolated:
-            isolated.append(point)
+        isolated.extend(point for point in points if point not in isolated)
 
     isolated = sorted(
-        point for point in isolated if not any(face.contains(point) for face in continua)
+        (point for point in isolated if not any(face.contains(point) for face in continua)),
+        key=tuple,
     )
     for vertex in vertices:
         if vertex not in isolated:
@@ -158,3 +184,181 @@ def bimatrix_rest_points(payoff_data: Sequence[np.ndarray]) -> tuple[list[Point]
     """Rest points of a 2Pop2S game as (x, y), the first-strategy probabilities."""
     vertices = [[Fraction(x), Fraction(y)] for x in (0, 1) for y in (0, 1)]
     return enumerate_rest_points(bimatrix_faces(payoff_data), vertices)
+
+
+def _cube_indifference(tensor: np.ndarray, player: int) -> Bilinear:
+    """Coefficients (a, b, c, d) of u(first) - u(second) for ``player`` as
+    a + b*u + c*w + d*u*w, where u and w are the other players' first-strategy
+    probabilities in increasing player order."""
+    T = [[[to_fraction(tensor[i][j][k]) for k in (0, 1)] for j in (0, 1)] for i in (0, 1)]
+
+    def difference(o1: int, o2: int) -> Fraction:
+        index = [o1, o2]
+        index.insert(player, 0)
+        first = T[index[0]][index[1]][index[2]]
+        index[player] = 1
+        return first - T[index[0]][index[1]][index[2]]
+
+    c00, c01, c10, c11 = difference(0, 0), difference(0, 1), difference(1, 0), difference(1, 1)
+    return c11, c01 - c11, c10 - c11, c00 - c01 - c10 + c11
+
+
+def _linear_roots(constant: Fraction, slope: Fraction) -> Optional[list[Fraction]]:
+    """Roots of constant + slope*z; None means identically zero."""
+    if slope != 0:
+        return [-constant / slope]
+    return None if constant == 0 else []
+
+
+def _quadratic_roots(q0: Fraction, q1: Fraction, q2: Fraction) -> Optional[Sequence[Scalar]]:
+    """Real roots of q0 + q1*z + q2*z**2 (Fractions when rational, else floats);
+    None means identically zero."""
+    if q2 == 0:
+        return _linear_roots(q0, q1)
+    disc = q1 * q1 - 4 * q2 * q0
+    if disc < 0:
+        return []
+    num, den = math.isqrt(disc.numerator), math.isqrt(disc.denominator)
+    if num * num == disc.numerator and den * den == disc.denominator:
+        root = Fraction(num, den)
+        return sorted({(-q1 - root) / (2 * q2), (-q1 + root) / (2 * q2)})
+    sqrt_disc = math.sqrt(disc)
+    return sorted((float(-q1) - sign * sqrt_disc) / float(2 * q2) for sign in (1, -1))
+
+
+def _at(poly: Linear, z: Scalar) -> Scalar:
+    """Evaluate constant + slope*z."""
+    return poly[0] + poly[1] * z
+
+
+class MixedCubeFace:
+    """Rest-point conditions where all three 3Pop2S players are indifferent.
+
+    E1(y, z) = A1(z) + B1(z)*y, E2(x, z) = A2(z) + B2(z)*x and E3(x, y) are
+    bilinear. For z with B1(z)*B2(z) != 0, E1 and E2 fix y and x, and E3
+    becomes one quadratic Q(z). The finitely many other z are handled case by
+    case. Zeros of this face that are not isolated form a continuum.
+    """
+
+    def __init__(self, e1: Bilinear, e2: Bilinear, e3: Bilinear) -> None:
+        self.e1, self.e2, self.e3 = e1, e2, e3
+        self._isolated, self._has_continuum = self._solve()
+
+    def solutions(self) -> tuple[list[Point], bool]:
+        """Return ``(isolated_points, has_continuum)``."""
+        return list(self._isolated), self._has_continuum
+
+    def contains(self, point: Point) -> bool:
+        """Whether ``point`` is a non-isolated zero of this face."""
+        return (
+            self._has_continuum
+            and all(_is_zero(value) for value in self._residuals(point))
+            and point not in self._isolated
+        )
+
+    def _residuals(self, point: Point) -> tuple[Scalar, Scalar, Scalar]:
+        x, y, z = point
+        (a1, b1, c1, d1), (a2, b2, c2, d2), (a3, b3, c3, d3) = self.e1, self.e2, self.e3
+        return (
+            a1 + b1 * y + c1 * z + d1 * y * z,
+            a2 + b2 * x + c2 * z + d2 * x * z,
+            a3 + b3 * x + c3 * y + d3 * x * y,
+        )
+
+    def _solve(self) -> tuple[list[Point], bool]:
+        (a1, b1, c1, d1), (a2, b2, c2, d2), (a3, b3, c3, d3) = self.e1, self.e2, self.e3
+        A1, B1 = (a1, c1), (b1, d1)
+        A2, B2 = (a2, c2), (b2, d2)
+        points: list[Point] = []
+        continuum = False
+
+        b1_roots, b2_roots = _linear_roots(*B1), _linear_roots(*B2)
+        if b1_roots is None or b2_roots is None:
+            # A player's indifference does not involve their partner's
+            # coordinate: E1 or E2 only constrains z.
+            candidates: Optional[list[Fraction]] = None
+            for A, B_roots in ((A1, b1_roots), (A2, b2_roots)):
+                if B_roots is None:
+                    roots = _linear_roots(*A)
+                    if roots is None:
+                        return [], True
+                    candidates = roots if candidates is None else [z for z in candidates if z in roots]
+            special: list[Fraction] = candidates or []
+        else:
+            q = [
+                a3 * b1 * b2 - b3 * a2 * b1 - c3 * a1 * b2 + d3 * a1 * a2,
+                a3 * (b1 * d2 + d1 * b2) - b3 * (a2 * d1 + c2 * b1)
+                - c3 * (a1 * d2 + c1 * b2) + d3 * (a1 * c2 + c1 * a2),
+                a3 * d1 * d2 - b3 * c2 * d1 - c3 * c1 * d2 + d3 * c1 * c2,
+            ]
+            generic = _quadratic_roots(*q)
+            if generic is None:
+                return [], True
+            for z in generic:
+                if _at(B1, z) != 0 and _at(B2, z) != 0:
+                    points.append([-_at(A2, z) / _at(B2, z), -_at(A1, z) / _at(B1, z), z])
+            special = sorted(set(b1_roots) | set(b2_roots))
+
+        for z in special:
+            found, line = self._at_special_z(z)
+            points.extend(found)
+            continuum = continuum or line
+        return points, continuum
+
+    def _at_special_z(self, z: Fraction) -> tuple[list[Point], bool]:
+        """Solve E1 = E2 = E3 = 0 with z fixed where B1(z) or B2(z) vanishes."""
+        (a1, b1, c1, d1), (a2, b2, c2, d2), (a3, b3, c3, d3) = self.e1, self.e2, self.e3
+        A1, B1 = a1 + c1 * z, b1 + d1 * z
+        A2, B2 = a2 + c2 * z, b2 + d2 * z
+        if (B1 == 0 and A1 != 0) or (B2 == 0 and A2 != 0):
+            return [], False
+        if B1 == 0 and B2 == 0:
+            # E3 alone constrains (x, y): a curve, a plane, or nothing.
+            return [], any(value != 0 for value in (b3, c3, d3)) or a3 == 0
+        if B1 == 0:
+            x = -A2 / B2
+            kind, solution = solve_linear([[c3 + d3 * x]], [-(a3 + b3 * x)])
+            return ([[x, solution[0], z]] if solution else []), kind == "continuum"
+        y = -A1 / B1
+        kind, solution = solve_linear([[b3 + d3 * y]], [-(a3 + c3 * y)])
+        return ([[solution[0], y, z]] if solution else []), kind == "continuum"
+
+
+def cube_faces(payoff_tensors: Sequence[np.ndarray]) -> Iterator[Face]:
+    """Yield the rest-point conditions on every face of a 3Pop2S cube."""
+    zero, one = Fraction(0), Fraction(1)
+    indifference = [_cube_indifference(tensor, player) for player, tensor in enumerate(payoff_tensors)]
+    # Each coordinate is fixed at 0, fixed at 1, or free with its player indifferent.
+    options: tuple[Optional[Fraction], ...]
+    for options in product((zero, one, None), repeat=3):
+        if all(option is None for option in options):
+            yield MixedCubeFace(*indifference)
+            continue
+        matrix: Matrix = []
+        rhs: list[Fraction] = []
+        for player, option in enumerate(options):
+            if option is not None:
+                matrix.append([one if j == player else zero for j in range(3)])
+                rhs.append(option)
+                continue
+            a, b, c, d = indifference[player]
+            u, w = [j for j in range(3) if j != player]
+            fixed_u, fixed_w = options[u], options[w]
+            row = [zero] * 3
+            if fixed_u is None:
+                assert fixed_w is not None  # not every player is indifferent here
+                row[u] = b + d * fixed_w
+                rhs.append(-(a + c * fixed_w))
+            elif fixed_w is None:
+                row[w] = c + d * fixed_u
+                rhs.append(-(a + b * fixed_u))
+            else:
+                rhs.append(-(a + b * fixed_u + c * fixed_w + d * fixed_u * fixed_w))
+            matrix.append(row)
+        yield FaceSystem(matrix, rhs)
+
+
+def cube_rest_points(payoff_tensors: Sequence[np.ndarray]) -> tuple[list[Point], bool]:
+    """Rest points of a 3Pop2S game as (x, y, z), the first-strategy probabilities."""
+    vertices = [[Fraction(v) for v in vertex] for vertex in product((0, 1), repeat=3)]
+    return enumerate_rest_points(cube_faces(payoff_tensors), vertices)

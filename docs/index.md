@@ -16,6 +16,7 @@ plt.show()
 :maxdepth: 2
 
 installation
+tutorial
 api
 ```
 

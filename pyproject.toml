@@ -43,8 +43,8 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/SlimaneD/pynamo"
-Issues = "https://github.com/SlimaneD/pynamo/issues"
+Repository = "https://github.com/pynamo-egt/pynamo"
+Issues = "https://github.com/pynamo-egt/pynamo/issues"
 
 [tool.setuptools.packages.find]
 include = ["pynamo_egt", "pynamo_egt.*"]

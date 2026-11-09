@@ -1,7 +1,7 @@
 # pyNamo-EGT
 
-[![Launch Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/SlimaneD/pynamo/master?filepath=tutorial.ipynb)
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SlimaneD/pynamo/blob/master/tutorial_colab.ipynb)
+[![Launch Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pynamo-egt/pynamo/master?filepath=tutorial.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pynamo-egt/pynamo/blob/master/tutorial_colab.ipynb)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23498361.svg)](https://doi.org/10.5281/zenodo.23498361)
 
 pyNamo-EGT is a Python package for plotting and analyzing replicator dynamics
@@ -32,12 +32,12 @@ If you use pyNamo-EGT in your research or teaching, please cite it as:
 
 <table>
   <tr>
-    <td><img src="https://raw.githubusercontent.com/SlimaneD/pynamo/master/release_figures/pynamo_egt_rps.png" width="100%"></td>
-    <td><img src="https://raw.githubusercontent.com/SlimaneD/pynamo/master/release_figures/pynamo_egt_hawk_dove.png" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/pynamo-egt/pynamo/master/release_figures/pynamo_egt_rps.png" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/pynamo-egt/pynamo/master/release_figures/pynamo_egt_hawk_dove.png" width="100%"></td>
   </tr>
   <tr>
-    <td><img src="https://raw.githubusercontent.com/SlimaneD/pynamo/master/release_figures/pynamo_egt_cyclic_mismatching_pennies.png" width="100%"></td>
-    <td><img src="https://raw.githubusercontent.com/SlimaneD/pynamo/master/release_figures/pynamo_egt_four_strategy.png" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/pynamo-egt/pynamo/master/release_figures/pynamo_egt_cyclic_mismatching_pennies.png" width="100%"></td>
+    <td><img src="https://raw.githubusercontent.com/pynamo-egt/pynamo/master/release_figures/pynamo_egt_four_strategy.png" width="100%"></td>
   </tr>
 </table>
 
@@ -50,7 +50,7 @@ There are two main ways to try pyNamo-EGT without a local installation.
 Use Binder if you want the closest experience to a local Jupyter notebook,
 including the interactive widget and rotatable 3D Matplotlib figures:
 
-[Launch the Binder tutorial](https://mybinder.org/v2/gh/SlimaneD/pynamo/master?filepath=tutorial.ipynb)
+[Launch the Binder tutorial](https://mybinder.org/v2/gh/pynamo-egt/pynamo/master?filepath=tutorial.ipynb)
 
 Binder runs in the browser and does not require a local installation. First launch
 can take a few minutes while Binder builds the environment.
@@ -64,7 +64,7 @@ SVG/PDF export quality is unaffected.
 
 Use Colab if you want a faster browser-based preview of the tutorial:
 
-[Open the Colab tutorial](https://colab.research.google.com/github/SlimaneD/pynamo/blob/master/tutorial_colab.ipynb)
+[Open the Colab tutorial](https://colab.research.google.com/github/pynamo-egt/pynamo/blob/master/tutorial_colab.ipynb)
 
 The Colab notebook supports ordinary plotting cells, but not the interactive
 widget or rotatable 3D Matplotlib figures.
@@ -96,7 +96,7 @@ pip install "pynamo-egt[notebook]"
 To install from source (for development or to modify the code):
 
 ```bash
-git clone https://github.com/SlimaneD/pynamo.git
+git clone https://github.com/pynamo-egt/pynamo.git
 cd pynamo
 pip install ".[dev]"
 python -m pytest -q

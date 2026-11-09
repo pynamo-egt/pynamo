@@ -8,7 +8,7 @@ authors:
     given-names: Slimane
   - family-names: Giraudon
     given-names: Benjamin
-repository-code: "https://github.com/SlimaneD/pynamo"
+repository-code: "https://github.com/pynamo-egt/pynamo"
 license: MIT
 keywords:
   - evolutionary game theory

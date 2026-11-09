@@ -398,3 +398,7 @@ Natural extensions include:
 - **Equilibrium manifolds.** Detect continua of rest points, analyze their
   stability, and plot them automatically when the result can be established
   reliably. Report inconclusive cases explicitly.
+
+## Bugs and feedback
+
+Please report bugs or unexpected behaviour by opening an issue on [GitHub](https://github.com/pynamo-egt/pynamo/issues).

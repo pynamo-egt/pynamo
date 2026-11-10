@@ -339,6 +339,12 @@ speed/vector fields, and inspect payoff data and equilibrium analysis.
 If 3D rotation does not work, make sure the notebook kernel has `ipympl` installed
 and that `%matplotlib widget` has been evaluated.
 
+## Getting help and contributing
+
+- Questions and where to find documentation: [SUPPORT.md](SUPPORT.md).
+- Bug reports and feature requests: [open an issue](https://github.com/pynamo-egt/pynamo/issues/new/choose).
+- Development setup, tests and pull-request conventions: [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Related software and acknowledgements
 
 pyNamo's design is directly inspired by **Dynamo** (cited in full below), the Mathematica package for evolutionary game dynamics diagrams by Sandholm, Dokumaci, and Franchetti. Users who prefer Mathematica or need features not yet in pyNamo should consult Dynamo first.

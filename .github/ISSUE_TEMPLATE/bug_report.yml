@@ -1,0 +1,31 @@
+name: Bug report
+description: Something in pyNamo-EGT doesn't work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal example
+      description: The smallest code that reproduces the problem, including the full error message or a screenshot of the figure.
+      render: python
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: pyNamo-EGT version
+      description: Output of `python -c "import pynamo_egt; print(pynamo_egt.__version__)"`
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, Python version, and Jupyter/VS Code/Colab if relevant.

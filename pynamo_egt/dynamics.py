@@ -172,127 +172,24 @@ def compute_equilibria(payoff_data: Union[PayoffMatrix, PayoffCollection]) -> Eq
             [[p.x] for p in points], degenerate=continuum,
             message="Every frequency in [0, 1] is an equilibrium." if continuum else None,
         )
-    if game_class in ("1Pop3S", "1Pop4S", "2Pop2S"):
-        if game_class == "2Pop2S":
-            points, degenerate = _rest_points.bimatrix_rest_points(payoff_data)
-        else:
-            full_points, degenerate = _rest_points.symmetric_rest_points(payoff_data)
-            points = [point[:-1] for point in full_points]
-        message = None
-        if degenerate:
-            message = _DEGENERATE_MESSAGE
-            warnings.warn(message, DegenerateEquilibriumWarning, stacklevel=2)
-        return EquilibriumResult(
-            [[float(value) for value in point] for point in points],
-            degenerate=degenerate,
-            message=message,
-        )
-
-    from sympy import Symbol
-    from sympy.solvers import solve
-    from itertools import product
-
-    time_0 = 0
-    x_sym = Symbol('x')
-    y_sym = Symbol('y')
-    equilibria = []
-    degenerate = False
+    if game_class == "2Pop2S":
+        points, degenerate = _rest_points.bimatrix_rest_points(payoff_data)
+    elif game_class == "3Pop2S":
+        points, degenerate = _rest_points.cube_rest_points(payoff_data)
+    elif game_class in ("1Pop3S", "1Pop4S"):
+        full_points, degenerate = _rest_points.symmetric_rest_points(payoff_data)
+        points = [point[:-1] for point in full_points]
+    else:
+        return EquilibriumResult([])
     message = None
-
-    def _split_solution_branches(solutions, symbols):
-        isolated = []
-        parametric = []
-        found_degeneracy = False
-        for sol in solutions:
-            if not all(sym in sol for sym in symbols):
-                found_degeneracy = True
-                parametric.append(sol)
-                continue
-            try:
-                isolated.append([float(sol[sym]) for sym in symbols])
-            except (TypeError, ValueError):
-                found_degeneracy = True
-                parametric.append(sol)
-
-        isolated = [
-            point
-            for point in isolated
-            if _is_vertex(point) or not _point_in_parametric_branch(point, parametric, symbols)
-        ]
-        return isolated, parametric, found_degeneracy
-
-    def _is_vertex(point):
-        return all(abs(coord) < 1e-9 or abs(coord - 1.0) < 1e-9 for coord in point)
-
-    def _point_in_parametric_branch(point, branches, symbols):
-        substitutions = {
-            sym: point[idx]
-            for idx, sym in enumerate(symbols)
-        }
-        for branch in branches:
-            contained = True
-            for idx, (sym, expression) in enumerate(branch.items()):
-                if sym not in symbols:
-                    contained = False
-                    break
-                try:
-                    value = float(expression.subs(substitutions))
-                except AttributeError:
-                    value = float(expression)
-                except (TypeError, ValueError):
-                    contained = False
-                    break
-                point_index = symbols.index(sym)
-                if abs(point[point_index] - value) >= 1e-9:
-                    contained = False
-                    break
-            if contained:
-                return True
-        return False
-
-    def _mark_degenerate():
-        nonlocal degenerate, message
-        degenerate = True
+    if degenerate:
         message = _DEGENERATE_MESSAGE
-        warnings.warn(message, DegenerateEquilibriumWarning, stacklevel=3)
-
-    def _contains_point(point, acc):
-        for sol in acc:
-            if all(abs(sol[i] - point[i]) < 1e-9 for i in range(len(point))):
-                return True
-        return False
-
-    def _add_missing_points(points, parametric=(), symbols=()):
-        for point in points:
-            if (
-                not _contains_point(point, equilibria)
-                and (
-                    _is_vertex(point)
-                    or not _point_in_parametric_branch(point, parametric, symbols)
-                )
-            ):
-                equilibria.append(list(point))
-
-    if game_class == "3Pop2S":
-        z_sym = Symbol('z')
-        dx, dy, dz = replicator_3p2s([x_sym, y_sym, z_sym], time_0, payoff_data)
-        solutions = [{}] if dx == 0 and dy == 0 and dz == 0 else solve([dx, dy, dz], x_sym, y_sym, z_sym, dict=True)
-        symbols = (x_sym, y_sym, z_sym)
-        equilibria, parametric, degenerate = _split_solution_branches(solutions, symbols)
-        if degenerate:
-            _mark_degenerate()
-
-        for vertex in product((0.0, 1.0), repeat=3):
-            if (
-                not _contains_point(vertex, equilibria)
-                and (
-                    _is_vertex(vertex)
-                    or not _point_in_parametric_branch(vertex, parametric, symbols)
-                )
-            ):
-                equilibria.append(list(vertex))
-
-    return EquilibriumResult(equilibria, degenerate=degenerate, message=message)
+        warnings.warn(message, DegenerateEquilibriumWarning, stacklevel=2)
+    return EquilibriumResult(
+        [[float(value) for value in point] for point in points],
+        degenerate=degenerate,
+        message=message,
+    )
 
 
 @dataclass(frozen=True)

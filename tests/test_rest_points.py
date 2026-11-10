@@ -78,11 +78,12 @@ def test_matches_sympy_on_games_without_degenerate_ties(n, count, seed, integers
 
 def test_matches_sympy_on_catalogue_games():
     for name, game in examples.games.items():
-        if game.game_class not in ("1Pop3S", "1Pop4S", "2Pop2S"):
+        if game.game_class == "1Pop2S":
             continue
         expected, isolated = sympy_rest_points(game.payoff_data)
-        if isolated:
-            assert list(_compute(game.payoff_data)) == expected, name
+        result = _compute(game.payoff_data)
+        if isolated and not result.degenerate:
+            assert list(result) == expected, name
 
 
 def _random_bimatrix_games(count: int, seed: int, integers: bool = True) -> Iterator[tuple[np.ndarray, ...]]:
@@ -122,3 +123,77 @@ def test_2pop2s_edge_continuum_keeps_vertices_and_drops_edge_points():
         result = dynamics.compute_equilibria(payoff)
     assert result.degenerate
     assert sorted(result) == [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]
+
+
+def _random_cube_games(count: int, seed: int, integers: bool = True) -> Iterator[tuple[np.ndarray, ...]]:
+    rng = np.random.default_rng(seed)
+    for _ in range(count):
+        if integers:
+            yield tuple(rng.integers(-3, 4, size=(3, 2, 2, 2)).astype(float))
+        else:
+            yield tuple(np.round(rng.normal(size=(3, 2, 2, 2)), 2))
+
+
+def _assert_same_points(result: list, expected: list) -> None:
+    # Irrational rest points come from a quadratic and may differ in the last bit.
+    assert len(result) == len(expected)
+    np.testing.assert_allclose(np.array(result, dtype=float), np.array(expected), rtol=1e-12, atol=1e-12)
+
+
+TWO_INTERIOR_ROOTS = (
+    np.array([[[-3, 3], [-1, 2]], [[2, 1], [2, -4]]], dtype=float),
+    np.array([[[-3, -1], [2, 0]], [[-2, 2], [0, -1]]], dtype=float),
+    np.array([[[-3, 4], [2, 0]], [[0, -4], [-4, -1]]], dtype=float),
+)
+
+
+@pytest.mark.parametrize("seed, integers", [(30, True), (31, False)])
+def test_3pop2s_rest_points_have_zero_velocity(seed, integers):
+    for payoff in _random_cube_games(30, seed, integers):
+        for point in _compute(payoff):
+            assert np.allclose(dynamics.replicator_3p2s(point, 0, payoff), 0, atol=1e-9)
+
+
+def test_3pop2s_matches_sympy_on_games_without_degenerate_ties():
+    compared = 0
+    for payoff in _random_cube_games(4, 32, integers=False):
+        expected, isolated = sympy_rest_points(payoff)
+        result = _compute(payoff)
+        if not isolated or result.degenerate:
+            continue
+        _assert_same_points(result, expected)
+        compared += 1
+    assert compared >= 2
+
+
+def test_3pop2s_finds_both_interior_roots_of_the_quadratic():
+    result = _compute(TWO_INTERIOR_ROOTS)
+    interior = [point for point in result if all(0 < value < 1 for value in point)]
+    assert not result.degenerate
+    assert len(interior) == 2
+    _assert_same_points(result, sympy_rest_points(TWO_INTERIOR_ROOTS)[0])
+
+
+def test_3pop2s_complex_interior_roots_are_not_degenerate():
+    # SymPy reports two complex interior solutions here; they are not rest points,
+    # so the game is not degenerate (the SymPy-based solver flagged it).
+    payoff = (
+        np.array([[[-2, 2], [0, -1]], [[2, 3], [-3, 0]]], dtype=float),
+        np.array([[[0, -3], [3, 3]], [[3, 0], [-3, 2]]], dtype=float),
+        np.array([[[2, -3], [1, 2]], [[-3, -2], [1, -3]]], dtype=float),
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", dynamics.DegenerateEquilibriumWarning)
+        result = dynamics.compute_equilibria(payoff)
+    assert not result.degenerate
+    assert len(result) == 13
+
+
+def test_3pop2s_coordination_cube_lists_isolated_points_then_continuum_vertices():
+    result = _compute(examples.games.coordination_cube.payoff_data)
+    assert result.degenerate
+    assert list(result) == [
+        [0.0, 0.0, 0.0], [0.5, 0.5, 0.5], [1.0, 1.0, 1.0],
+        [0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [0.0, 1.0, 1.0],
+        [1.0, 0.0, 0.0], [1.0, 0.0, 1.0], [1.0, 1.0, 0.0],
+    ]

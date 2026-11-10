@@ -14,11 +14,11 @@ authors = [
     { name = "Benjamin Giraudon" },
 ]
 dependencies = [
-    "matplotlib",
-    "numpy",
-    "pandas",
-    "scipy",
-    "sympy",
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "pandas>=2.1.1",
+    "scipy>=1.11.2",
+    "sympy>=1.12",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -35,16 +35,16 @@ classifiers = [
 
 [project.optional-dependencies]
 notebook = [
-    "ipykernel",
-    "ipympl",
-    "ipywidgets",
-    "jupyter",
+    "ipykernel>=6.25",
+    "ipympl>=0.9.3",
+    "ipywidgets>=8.1",
+    "jupyter>=1.0",
 ]
 plotly = [
-    "plotly",
+    "plotly>=5.18",
 ]
 dev = [
-    "pytest",
+    "pytest>=7.4",
 ]
 
 [project.urls]

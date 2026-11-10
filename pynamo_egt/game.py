@@ -289,12 +289,29 @@ class Game:
 
     def _validate_dimensions(self) -> None:
         if self.symmetric:
+            if self._payoff.ndim != 2:  # type: ignore[union-attr]
+                raise ValueError(
+                    "A single payoff array describes a symmetric game and must be a "
+                    f"square matrix; got an array of shape {self._payoff.shape}. "  # type: ignore[union-attr]
+                    "For an asymmetric game, pass a tuple with one payoff array per player."
+                )
             if self._payoff.shape[0] < 2:  # type: ignore[index]
                 raise ValueError("Symmetric games must have at least two strategies.")
         else:
-            shapes = {matrix.shape for matrix in self._payoff}  # type: ignore[iterable]
-            if len(shapes) != 1:
-                raise ValueError("All payoff tensors must share identical dimensions.")
+            shapes = [matrix.shape for matrix in self._payoff]  # type: ignore[iterable]
+            if len(set(shapes)) != 1:
+                listed = ", ".join(str(shape) for shape in dict.fromkeys(shapes))
+                raise ValueError(
+                    f"All payoff arrays must have the same shape; got shapes {listed}."
+                )
+            players = len(shapes)
+            rank = len(shapes[0])
+            if rank != players:
+                raise ValueError(
+                    f"Got {players} payoff arrays of rank {rank}, but an asymmetric game "
+                    f"with {players} players needs one payoff array of rank {players} "
+                    "per player (one axis per player's strategy)."
+                )
 
     def _ensure_label_defaults(self) -> None:
         if self.strategy_labels:

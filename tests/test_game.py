@@ -70,3 +70,34 @@ def test_legacy_catalogue_lookup(old, new):
     assert current
     assert games.by_class(old) == current
     assert all(g.game_class == new for g in current.values())
+
+
+@pytest.mark.parametrize(
+    "payoffs, message",
+    [
+        ((np.eye(2), np.eye(2), np.eye(2)), r"3 payoff arrays of rank 2.*3 players.*rank 3"),
+        ((np.zeros((2, 2, 2)), np.zeros((2, 2, 2))), r"2 payoff arrays of rank 3.*2 players.*rank 2"),
+        ((np.eye(2),), r"1 payoff arrays? of rank 2"),
+    ],
+    ids=["three-matrices", "two-tensors", "one-element-tuple"],
+)
+def test_payoff_rank_must_match_number_of_players(payoffs, message):
+    with pytest.raises(ValueError, match=message):
+        game.Game("Malformed", payoffs)
+
+
+def test_payoff_arrays_must_share_one_shape():
+    with pytest.raises(ValueError, match=r"same shape.*\(2, 2\).*\(3, 3\)"):
+        game.Game("Unequal", (np.eye(2), np.eye(3)))
+
+
+def test_single_payoff_array_must_be_a_matrix():
+    with pytest.raises(ValueError, match=r"square matrix.*\(3, 2, 2, 2\).*tuple"):
+        game.Game("Stacked tensors", np.zeros((3, 2, 2, 2)))
+
+
+def test_every_catalogue_game_has_a_supported_class():
+    from pynamo_egt import examples
+
+    for _, g in examples.games.items():
+        assert g.game_class != "unsupported"

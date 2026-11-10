@@ -78,8 +78,47 @@ def test_matches_sympy_on_games_without_degenerate_ties(n, count, seed, integers
 
 def test_matches_sympy_on_catalogue_games():
     for name, game in examples.games.items():
-        if game.game_class not in ("1Pop3S", "1Pop4S"):
+        if game.game_class not in ("1Pop3S", "1Pop4S", "2Pop2S"):
             continue
         expected, isolated = sympy_rest_points(game.payoff_data)
         if isolated:
             assert list(_compute(game.payoff_data)) == expected, name
+
+
+def _random_bimatrix_games(count: int, seed: int, integers: bool = True) -> Iterator[tuple[np.ndarray, ...]]:
+    rng = np.random.default_rng(seed)
+    for _ in range(count):
+        if integers:
+            yield tuple(rng.integers(-3, 4, size=(2, 2, 2)).astype(float))
+        else:
+            yield tuple(np.round(rng.normal(size=(2, 2, 2)), 2))
+
+
+@pytest.mark.parametrize("seed, integers", [(20, True), (21, False)])
+def test_2pop2s_rest_points_have_zero_velocity(seed, integers):
+    for payoff in _random_bimatrix_games(50, seed, integers):
+        for point in _compute(payoff):
+            assert np.allclose(dynamics.replicator_2p2s(point, 0, payoff), 0, atol=1e-9)
+
+
+@pytest.mark.parametrize("seed, integers", [(22, True), (23, False)])
+def test_2pop2s_matches_sympy_on_games_without_degenerate_ties(seed, integers):
+    compared = 0
+    for payoff in _random_bimatrix_games(20, seed, integers):
+        expected, isolated = sympy_rest_points(payoff)
+        result = _compute(payoff)
+        if not isolated or result.degenerate:
+            continue
+        assert list(result) == expected
+        compared += 1
+    assert compared >= 5
+
+
+def test_2pop2s_edge_continuum_keeps_vertices_and_drops_edge_points():
+    # Player 1 is indifferent whenever player 2 plays the second strategy (y = 0),
+    # so the whole edge y = 0 is a continuum of rest points.
+    payoff = (np.array([[1.0, 0.0], [0.0, 0.0]]), np.array([[1.0, 0.0], [0.0, 2.0]]))
+    with pytest.warns(dynamics.DegenerateEquilibriumWarning):
+        result = dynamics.compute_equilibria(payoff)
+    assert result.degenerate
+    assert sorted(result) == [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]

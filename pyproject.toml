@@ -46,6 +46,12 @@ plotly = [
 dev = [
     "pytest>=7.4",
 ]
+docs = [
+    "myst-parser>=4",
+    "numpydoc>=1.8",
+    "pydata-sphinx-theme>=0.16",
+    "sphinx>=8",
+]
 
 [project.urls]
 Repository = "https://github.com/pynamo-egt/pynamo"

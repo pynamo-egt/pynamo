@@ -23,5 +23,14 @@ api
 
 ## Citing pyNamo-EGT
 
-If you use pyNamo-EGT in research or teaching, please cite it using the metadata in
-[`CITATION.cff`](https://github.com/pynamo-egt/pynamo/blob/master/CITATION.cff).
+If you use pyNamo-EGT in research or teaching, please cite it as:
+
+```bibtex
+@software{dridi2026pynamo,
+  author  = {Dridi, Slimane and Giraudon, Benjamin},
+  title   = {{pyNamo-EGT}: Phase portraits of evolutionary game dynamics in {Python}},
+  year    = {2026},
+  doi     = {10.5281/zenodo.23498361},
+  url     = {https://doi.org/10.5281/zenodo.23498361}
+}
+```

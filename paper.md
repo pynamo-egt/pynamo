@@ -16,7 +16,7 @@ authors:
 affiliations:
   - name: Independent Researcher
     index: 1
-  - name: Canonical Ltd.
+  - name: Independent Researcher
     index: 2
 date: 19 October 2026
 bibliography: paper.bib

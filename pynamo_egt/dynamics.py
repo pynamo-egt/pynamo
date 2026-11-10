@@ -1,11 +1,13 @@
 """Replicator vector fields and rest-point computation for pyNamo games."""
 
 from dataclasses import dataclass
+from typing import Union
 import warnings
 
 import numpy as np
 
-from .game import infer_game_class
+from . import _rest_points
+from .game import PayoffCollection, PayoffMatrix, infer_game_class
 
 __all__ = [
     "DegenerateEquilibriumWarning",
@@ -25,6 +27,15 @@ __all__ = [
 
 class DegenerateEquilibriumWarning(RuntimeWarning):
     """Warning raised when equilibrium sets are non-isolated."""
+
+
+# Kept verbatim from the SymPy-based solver so existing output is unchanged.
+_DEGENERATE_MESSAGE = (
+    "Degenerate equilibrium solutions detected: SymPy returned a "
+    "parametric/non-isolated solution set. Non-isolated rest-point "
+    "families are not expanded into points; vertices and identifiable "
+    "isolated points are retained."
+)
 
 
 class EquilibriumResult(list):
@@ -152,12 +163,8 @@ def reverse_replicator_3p2s(state, t, payoff_tensors):
     return -replicator_3p2s(state, t, payoff_tensors)
 
 
-def compute_equilibria(payoff_data):
+def compute_equilibria(payoff_data: Union[PayoffMatrix, PayoffCollection]) -> EquilibriumResult:
     """Return rest points (equilibria) of the replicator dynamics for the given payoff tensors."""
-    from sympy import Symbol
-    from sympy.solvers import solve
-    from itertools import product
-
     game_class = infer_game_class(payoff_data)
     if game_class == "1Pop2S":
         points, continuum = _analyze_1d(payoff_data)
@@ -165,6 +172,22 @@ def compute_equilibria(payoff_data):
             [[p.x] for p in points], degenerate=continuum,
             message="Every frequency in [0, 1] is an equilibrium." if continuum else None,
         )
+    if game_class in ("1Pop3S", "1Pop4S"):
+        points, degenerate = _rest_points.symmetric_rest_points(payoff_data)
+        message = None
+        if degenerate:
+            message = _DEGENERATE_MESSAGE
+            warnings.warn(message, DegenerateEquilibriumWarning, stacklevel=2)
+        return EquilibriumResult(
+            [[float(value) for value in point[:-1]] for point in points],
+            degenerate=degenerate,
+            message=message,
+        )
+
+    from sympy import Symbol
+    from sympy.solvers import solve
+    from itertools import product
+
     time_0 = 0
     x_sym = Symbol('x')
     y_sym = Symbol('y')
@@ -195,19 +218,7 @@ def compute_equilibria(payoff_data):
         return isolated, parametric, found_degeneracy
 
     def _is_vertex(point):
-        point = list(point)
-        if game_class in ("1Pop3S", "1Pop4S"):
-            origin = all(abs(coord) < 1e-9 for coord in point)
-            basis_vertex = (
-                sum(abs(coord - 1.0) < 1e-9 for coord in point) == 1
-                and sum(abs(coord) < 1e-9 for coord in point) == len(point) - 1
-            )
-            return origin or basis_vertex
-
-        if game_class in ("2Pop2S", "3Pop2S"):
-            return all(abs(coord) < 1e-9 or abs(coord - 1.0) < 1e-9 for coord in point)
-
-        return False
+        return all(abs(coord) < 1e-9 or abs(coord - 1.0) < 1e-9 for coord in point)
 
     def _point_in_parametric_branch(point, branches, symbols):
         substitutions = {
@@ -238,12 +249,7 @@ def compute_equilibria(payoff_data):
     def _mark_degenerate():
         nonlocal degenerate, message
         degenerate = True
-        message = (
-            "Degenerate equilibrium solutions detected: SymPy returned a "
-            "parametric/non-isolated solution set. Non-isolated rest-point "
-            "families are not expanded into points; vertices and identifiable "
-            "isolated points are retained."
-        )
+        message = _DEGENERATE_MESSAGE
         warnings.warn(message, DegenerateEquilibriumWarning, stacklevel=3)
 
     def _contains_point(point, acc):
@@ -263,17 +269,7 @@ def compute_equilibria(payoff_data):
             ):
                 equilibria.append(list(point))
 
-    if game_class == "1Pop3S":
-        dx, dy = replicator_2p3s([x_sym, y_sym], time_0, payoff_data)
-        mass_constraint = dx + dy
-        solutions = [{}] if dx == 0 and dy == 0 else solve([dx, dy, mass_constraint], x_sym, y_sym, dict=True)
-        symbols = (x_sym, y_sym)
-        equilibria, parametric, degenerate = _split_solution_branches(solutions, symbols)
-        if degenerate:
-            _mark_degenerate()
-        _add_missing_points([(1.0, 0.0), (0.0, 1.0), (0.0, 0.0)], parametric, symbols)
-
-    elif game_class == "2Pop2S":
+    if game_class == "2Pop2S":
         pay_p1, pay_p2 = payoff_data
         dx = _replicator_2p2s_population([x_sym, y_sym], time_0, pay_p1)
         dy = _replicator_2p2s_population([y_sym, x_sym], time_0, pay_p2)
@@ -302,21 +298,6 @@ def compute_equilibria(payoff_data):
                 )
             ):
                 equilibria.append(list(vertex))
-
-    elif game_class == "1Pop4S":
-        z_sym = Symbol('z')
-        dx, dy, dz = replicator_2p4s([x_sym, y_sym, z_sym], time_0, payoff_data)
-        mass_constraint = dx + dy + dz
-        solutions = [{}] if dx == 0 and dy == 0 and dz == 0 else solve([dx, dy, dz, mass_constraint], x_sym, y_sym, z_sym, dict=True)
-        symbols = (x_sym, y_sym, z_sym)
-        equilibria, parametric, degenerate = _split_solution_branches(solutions, symbols)
-        if degenerate:
-            _mark_degenerate()
-        _add_missing_points(
-            [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0), (0.0, 0.0, 0.0)],
-            parametric,
-            symbols,
-        )
 
     return EquilibriumResult(equilibria, degenerate=degenerate, message=message)
 

@@ -42,6 +42,8 @@ autodoc_default_options = {"members": True, "show-inheritance": True}
 numpydoc_show_class_members = False
 numpydoc_class_members_toctree = False
 
+myst_enable_extensions = ["dollarmath"]
+
 nb_execution_mode = "force"
 nb_execution_raise_on_error = True
 nb_execution_timeout = 600

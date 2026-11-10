@@ -1,7 +1,15 @@
+import importlib.util
+
 import pytest
 import pynamo_egt as pn
 
+requires_plotly = pytest.mark.skipif(
+    importlib.util.find_spec("plotly") is None,
+    reason="plotly is not installed (install the 'plotly' extra)",
+)
 
+
+@requires_plotly
 def test_phase_portrait_html_returns_html_string():
     game = pn.examples.games.rps_with_twin
     html = pn.phase_portrait_html(
@@ -16,6 +24,7 @@ def test_phase_portrait_html_returns_html_string():
     assert "plotly" in html.lower()
 
 
+@requires_plotly
 def test_phase_portrait_html_with_speed():
     game = pn.examples.games.rps_with_twin
     html = pn.phase_portrait_html(
@@ -28,6 +37,7 @@ def test_phase_portrait_html_with_speed():
     assert "plotly" in html.lower()
 
 
+@requires_plotly
 def test_phase_portrait_html_writes_file(tmp_path):
     game = pn.examples.games.rps_with_twin
     out = tmp_path / "portrait.html"
@@ -43,6 +53,7 @@ def test_phase_portrait_html_writes_file(tmp_path):
     assert out.read_text() == html
 
 
+@requires_plotly
 def test_phase_portrait_html_3pop2s():
     game = pn.examples.games.by_class("3Pop2S")
     name = next(iter(game))
@@ -57,6 +68,7 @@ def test_phase_portrait_html_3pop2s():
     assert "plotly" in html.lower()
 
 
+@requires_plotly
 def test_phase_portrait_html_3pop2s_with_speed():
     game = pn.examples.games.by_class("3Pop2S")
     name = next(iter(game))
@@ -70,6 +82,7 @@ def test_phase_portrait_html_3pop2s_with_speed():
     assert "plotly" in html.lower()
 
 
+@requires_plotly
 def test_phase_portrait_html_rejects_unsupported():
     game = pn.examples.games.good_rps
     with pytest.raises(ValueError, match="1Pop4S"):

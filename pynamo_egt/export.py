@@ -96,7 +96,7 @@ def phase_portrait_html(
     if not _PLOTLY_AVAILABLE:
         raise ImportError(
             "plotly is required for phase_portrait_html. "
-            "Install it with: pip install plotly"
+            'Install it with: pip install "pynamo-egt[plotly]"'
         ) from _PLOTLY_IMPORT_ERROR
 
     payoff_data = getattr(game, "payoff_data", game)

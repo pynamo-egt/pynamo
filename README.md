@@ -93,12 +93,18 @@ For notebook and widget support (recommended for Jupyter users):
 pip install "pynamo-egt[notebook]"
 ```
 
+For interactive HTML export of 3D portraits with `phase_portrait_html`:
+
+```bash
+pip install "pynamo-egt[plotly]"
+```
+
 To install from source (for development or to modify the code):
 
 ```bash
 git clone https://github.com/pynamo-egt/pynamo.git
 cd pynamo
-pip install ".[dev]"
+pip install ".[dev,plotly]"
 python -m pytest -q
 ```
 

@@ -1,0 +1,6 @@
+/* Make the stacked pN logo larger in the navbar */
+.navbar-brand img {
+    height: 52px;
+    max-height: 52px;
+    width: auto;
+}

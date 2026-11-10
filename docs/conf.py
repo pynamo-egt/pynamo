@@ -72,6 +72,7 @@ html_theme = "pydata_sphinx_theme"
 html_title = "pyNamo-EGT"
 html_logo = "_static/pn-logo.svg"
 html_favicon = "_static/pn-mark.svg"
+html_css_files = ["custom.css"]
 html_theme_options = {
     "github_url": "https://github.com/pynamo-egt/pynamo",
     "navigation_with_keys": False,

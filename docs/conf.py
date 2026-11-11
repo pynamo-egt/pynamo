@@ -70,7 +70,7 @@ intersphinx_mapping = {
 
 html_theme = "pydata_sphinx_theme"
 html_title = "pyNamo-EGT"
-html_logo = "_static/pn-logo.svg"
+html_logo = "_static/pn-logo-wide.svg"
 html_favicon = "_static/pn-mark.svg"
 html_css_files = ["custom.css"]
 html_theme_options = {

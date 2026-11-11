@@ -1,14 +1,10 @@
 """Sphinx configuration for the pyNamo-EGT documentation."""
 
-import shutil
 from pathlib import Path
 
 import pynamo_egt
 
 DOCS = Path(__file__).resolve().parent
-# The tutorial stays at the repository root for the Binder and Colab links;
-# copy it into the source tree so MyST-NB executes and renders it.
-shutil.copyfile(DOCS.parent / "tutorial.ipynb", DOCS / "tutorial.ipynb")
 
 project = "pyNamo-EGT"
 author = "Slimane Dridi and Benjamin Giraudon"

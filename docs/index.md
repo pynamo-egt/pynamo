@@ -16,7 +16,7 @@ plt.show()
 :maxdepth: 2
 
 installation
-tutorial
+tutorial_web
 auto_examples/index
 api
 ```

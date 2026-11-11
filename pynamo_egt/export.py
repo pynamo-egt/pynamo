@@ -41,6 +41,7 @@ def phase_portrait_html(
     show_speed=True,
     show_faces=True,
     face_alpha=0.12,
+    face_colors=None,
     random_state=None,
 ):
     """Export an interactive 3D phase portrait as a self-contained HTML file.
@@ -118,9 +119,9 @@ def phase_portrait_html(
     # State-space geometry                                                 #
     # ------------------------------------------------------------------ #
     if game_class == "1Pop4S":
-        traces.extend(_1pop4s_geometry(strategy_labels, show_speed, show_faces, face_alpha, payoff_data))
+        traces.extend(_1pop4s_geometry(strategy_labels, show_speed, show_faces, face_alpha, payoff_data, face_colors))
     else:
-        traces.extend(_3pop2s_geometry(show_speed, show_faces, face_alpha, payoff_data))
+        traces.extend(_3pop2s_geometry(show_speed, show_faces, face_alpha, payoff_data, face_colors))
 
     # ------------------------------------------------------------------ #
     # Trajectories                                                         #
@@ -232,12 +233,13 @@ def phase_portrait_html(
     fig.update_layout(
         title=game_name,
         scene=scene,
+        height=620,
         margin=dict(l=0, r=0, t=40 if game_name else 10, b=0),
         paper_bgcolor="white",
         legend=dict(title="Stability"),
     )
 
-    html_str = fig.to_html(include_plotlyjs="cdn", full_html=True)
+    html_str = fig.to_html(include_plotlyjs="cdn", include_mathjax=False, full_html=True)
 
     if path is not None:
         with open(path, "w") as f:
@@ -250,7 +252,7 @@ def phase_portrait_html(
 # Geometry builders
 # ---------------------------------------------------------------------------
 
-def _1pop4s_geometry(strategy_labels, show_speed, show_faces, face_alpha, payoff_data):
+def _1pop4s_geometry(strategy_labels, show_speed, show_faces, face_alpha, payoff_data, face_colors=None):
     v = [
         np.array(simplex_to_plane_2p4s(1, 0, 0)),
         np.array(simplex_to_plane_2p4s(0, 1, 0)),
@@ -263,13 +265,14 @@ def _1pop4s_geometry(strategy_labels, show_speed, show_faces, face_alpha, payoff
     if show_speed:
         traces.extend(_1pop4s_speed_faces(payoff_data))
     elif show_faces:
-        for a, b, c in face_vertex_indices:
+        for idx, (a, b, c) in enumerate(face_vertex_indices):
+            color = face_colors[idx] if face_colors and idx < len(face_colors) else "lightgrey"
             traces.append(go.Mesh3d(
                 x=[v[a][0], v[b][0], v[c][0]],
                 y=[v[a][1], v[b][1], v[c][1]],
                 z=[v[a][2], v[b][2], v[c][2]],
                 i=[0], j=[1], k=[2],
-                color="lightgrey",
+                color=color,
                 opacity=face_alpha,
                 showlegend=False,
                 hoverinfo="skip",
@@ -306,7 +309,7 @@ def _1pop4s_geometry(strategy_labels, show_speed, show_faces, face_alpha, payoff
     return traces
 
 
-def _3pop2s_geometry(show_speed, show_faces, face_alpha, payoff_data):
+def _3pop2s_geometry(show_speed, show_faces, face_alpha, payoff_data, face_colors=None):
     corners = np.array([
         [0,0,0],[1,0,0],[0,1,0],[1,1,0],
         [0,0,1],[1,0,1],[0,1,1],[1,1,1],
@@ -317,12 +320,13 @@ def _3pop2s_geometry(show_speed, show_faces, face_alpha, payoff_data):
     if show_speed:
         traces.extend(_3pop2s_speed_faces(payoff_data))
     elif show_faces:
-        for fixed_axis, fixed_value in [(0,0),(0,1),(1,0),(1,1),(2,0),(2,1)]:
+        for idx, (fixed_axis, fixed_value) in enumerate([(0,0),(0,1),(1,0),(1,1),(2,0),(2,1)]):
+            color = face_colors[idx] if face_colors and idx < len(face_colors) else "lightgrey"
             pts, tris = _square_face_samples(fixed_axis, fixed_value, n_grid=2)
             traces.append(go.Mesh3d(
                 x=pts[:, 0], y=pts[:, 1], z=pts[:, 2],
                 i=tris[:, 0], j=tris[:, 1], k=tris[:, 2],
-                color="lightgrey",
+                color=color,
                 opacity=face_alpha,
                 showlegend=False,
                 hoverinfo="skip",

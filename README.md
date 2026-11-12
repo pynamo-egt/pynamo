@@ -1,5 +1,6 @@
 # pyNamo-EGT
 
+[![Documentation](https://readthedocs.org/projects/pynamo-egt/badge/?version=latest)](https://pynamo-egt.readthedocs.io/en/latest/)
 [![Launch Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pynamo-egt/pynamo/master?filepath=tutorial.ipynb)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/pynamo-egt/pynamo/blob/master/tutorial_colab.ipynb)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23498361.svg)](https://doi.org/10.5281/zenodo.23498361)
@@ -78,6 +79,10 @@ widget or rotatable 3D Matplotlib figures.
 - Reproducible grid-based default trajectories, with automatic one-dimensional flow arrows on triangle and square boundaries.
 - Equilibrium analysis with linear stability classification, Nash equilibria, strict Nash equilibria, and ESS checks where applicable.
 - A Jupyter widget for quick exploration of built-in example games.
+
+## Documentation
+
+The full documentation, including an interactive tutorial, API reference, and example gallery, is at **https://pynamo-egt.readthedocs.io**.
 
 ## Installation
 

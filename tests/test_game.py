@@ -101,3 +101,9 @@ def test_every_catalogue_game_has_a_supported_class():
 
     for _, g in examples.games.items():
         assert g.game_class != "unsupported"
+
+
+def test_game_names_is_deprecated_but_still_works():
+    rps = game.Game("RPS", np.array([[0, -1, 1], [1, 0, -1], [-1, 1, 0]], dtype=float))
+    with pytest.warns(DeprecationWarning, match="game_names is deprecated"):
+        assert game.game_names([(7, rps)]) == {7: "RPS"}

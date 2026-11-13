@@ -108,3 +108,13 @@ def test_3pop2s_first_strategy_dominance_has_sink_at_one():
     assert equilibrium.nash is True
     assert equilibrium.strict_nash is True
     assert equilibrium.stability == "sink"
+
+
+def test_analysis_rejects_unsupported_game_size():
+    five_strategies = game.Game("Five strategies", np.eye(5))
+    with pytest.raises(ValueError, match=r"shape \(5, 5\).*1Pop2S.*1Pop3S.*1Pop4S.*2Pop2S.*3Pop2S"):
+        analysis.analyze_equilibria(five_strategies)
+    with pytest.raises(ValueError, match="Supported game classes"):
+        analysis.equilibrium_table(five_strategies)
+    with pytest.raises(ValueError, match="Supported game classes"):
+        dynamics.compute_equilibria(five_strategies.payoff_data)

@@ -19,7 +19,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from . import analysis
 from . import dynamics
-from .game import infer_game_class
+from .game import infer_game_class, require_supported_game_class
 
 __all__ = [
     "PlottingWarning",
@@ -1247,6 +1247,11 @@ def phase_portrait(
         Axes containing the plot. This is a 3D axes object for 1Pop4S and 3Pop2S
         games.
 
+    Raises
+    ------
+    ValueError
+        If the game does not belong to a supported game class.
+
     Notes
     -----
     Equilibrium stability is computed from the linearization restricted to
@@ -1255,7 +1260,7 @@ def phase_portrait(
     conclusively, pyNamo emits a warning rather than forcing a classification.
     """
     payoff_data = _payoff_data(game)
-    game_class = infer_game_class(game)
+    game_class = require_supported_game_class(game)
     if game_class == "1Pop2S":
         from ._one_dimensional import _phase_portrait_1d
         return _phase_portrait_1d(

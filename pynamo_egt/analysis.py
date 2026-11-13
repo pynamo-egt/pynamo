@@ -15,7 +15,7 @@ from sympy import Matrix
 from sympy.abc import x, y, z
 
 from . import dynamics
-from .game import infer_game_class
+from .game import infer_game_class, require_supported_game_class
 
 __all__ = [
     "InconclusiveStabilityWarning",
@@ -133,6 +133,11 @@ def analyze_equilibria(game) -> EquilibriumAnalysis:
         admissible eigenvalues/eigenvectors, Nash status, strict Nash status,
         ESS status where applicable, and warnings.
 
+    Raises
+    ------
+    ValueError
+        If the game does not belong to a supported game class.
+
     Warns
     -----
     dynamics.DegenerateEquilibriumWarning
@@ -152,7 +157,7 @@ def analyze_equilibria(game) -> EquilibriumAnalysis:
     eigendirections at boundary equilibria.
     """
     payoff_data = _payoff_data(game)
-    game_class = infer_game_class(game)
+    game_class = require_supported_game_class(game)
     if game_class == "1Pop2S":
         points, continuum = dynamics._analyze_1d(payoff_data)
         u, v = dynamics._coefficients_1d(payoff_data)

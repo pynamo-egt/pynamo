@@ -4,6 +4,7 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 from matplotlib.collections import PatchCollection
 
 from pynamo_egt import drawer
@@ -229,3 +230,8 @@ def test_phase_portrait_accepts_equilibrium_edgecolor():
     assert fig is not None
     assert ax is not None
     plt.close(fig)
+
+
+def test_phase_portrait_rejects_unsupported_game_size():
+    with pytest.raises(ValueError, match=r"shape \(5, 5\).*Supported game classes"):
+        drawer.phase_portrait(Game("Five strategies", np.eye(5)))

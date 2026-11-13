@@ -1,7 +1,7 @@
 """Replicator vector fields and rest-point computation for pyNamo games."""
 
 from dataclasses import dataclass
-from typing import Union
+from typing import Sequence, Union
 import warnings
 
 import numpy as np
@@ -21,6 +21,7 @@ __all__ = [
     "replicator_3p2s",
     "reverse_replicator_3p2s",
     "compute_equilibria",
+    "replicator_jacobian",
     "replicator_1d",
 ]
 
@@ -161,6 +162,78 @@ def replicator_3p2s(state, t, payoff_tensors):
 def reverse_replicator_3p2s(state, t, payoff_tensors):
     """Opposite replicator dynamics for the three-player 2-strategy game."""
     return -replicator_3p2s(state, t, payoff_tensors)
+
+
+def _symmetric_jacobian(reduced: np.ndarray, payoff_matrix: np.ndarray) -> np.ndarray:
+    """Jacobian of the one-population replicator field in reduced coordinates.
+
+    The state is x = (r, 1 - sum(r)); the field is r_i * ((Ax)_i - x^T A x).
+    """
+    A = np.asarray(payoff_matrix, dtype=float)
+    r = np.asarray(reduced, dtype=float)
+    k = r.size
+    x = np.append(r, 1.0 - r.sum())
+    fitness = A @ x
+    mean = x @ fitness
+    # d/dr_j of (Ax)_i is A_ij - A_in; d/dr_j of x^T A x is s_j - s_n with s = (A + A^T) x.
+    s = (A + A.T) @ x
+    d_fitness = A[:k, :k] - A[:k, [k]]
+    d_mean = s[:k] - s[k]
+    return np.diag(fitness[:k] - mean) + r[:, None] * (d_fitness - d_mean[None, :])
+
+
+def _indifference_2x2(payoff_matrix: np.ndarray, opponent: float) -> tuple[float, float]:
+    """u(first) - u(second) for a focal-player 2×2 matrix, and its slope in ``opponent``."""
+    (a, b), (c, d) = np.asarray(payoff_matrix, dtype=float)
+    slope = (a - c) - (b - d)
+    return (b - d) + slope * opponent, slope
+
+
+def _jacobian_2p2s(reduced: np.ndarray, payoff_data: Sequence[np.ndarray]) -> np.ndarray:
+    """Jacobian of the 2Pop2S replicator field at (x, y)."""
+    x, y = (float(value) for value in reduced)
+    h1, dh1 = _indifference_2x2(payoff_data[0], y)
+    h2, dh2 = _indifference_2x2(payoff_data[1], x)
+    return np.array([
+        [(1 - 2 * x) * h1, x * (1 - x) * dh1],
+        [y * (1 - y) * dh2, (1 - 2 * y) * h2],
+    ])
+
+
+def _jacobian_3p2s(reduced: np.ndarray, payoff_tensors: Sequence[np.ndarray]) -> np.ndarray:
+    """Jacobian of the 3Pop2S replicator field at (x, y, z).
+
+    Each coordinate follows p_i (1 - p_i) Δ_i, where Δ_i = u_i(first) - u_i(second)
+    is bilinear in the other two players' first-strategy probabilities.
+    """
+    p = np.asarray(reduced, dtype=float)
+    jacobian = np.zeros((3, 3))
+    for i, tensor in enumerate(payoff_tensors):
+        # Δ_i as a 2×2 table over the other players' actions, in player order.
+        D = np.take(tensor, 0, axis=i) - np.take(tensor, 1, axis=i)
+        u, w = [j for j in range(3) if j != i]
+        weights_u = np.array([p[u], 1 - p[u]])
+        weights_w = np.array([p[w], 1 - p[w]])
+        delta = weights_u @ D @ weights_w
+        scale = p[i] * (1 - p[i])
+        jacobian[i, i] = (1 - 2 * p[i]) * delta
+        jacobian[i, u] = scale * (np.array([1.0, -1.0]) @ D @ weights_w)
+        jacobian[i, w] = scale * (weights_u @ D @ np.array([1.0, -1.0]))
+    return jacobian
+
+
+def replicator_jacobian(
+    reduced: np.ndarray, payoff_data: Union[PayoffMatrix, PayoffCollection]
+) -> np.ndarray:
+    """Jacobian of the replicator field at ``reduced`` for a 1Pop3S, 1Pop4S, 2Pop2S or 3Pop2S game."""
+    game_class = infer_game_class(payoff_data)
+    if isinstance(payoff_data, np.ndarray) and game_class in ("1Pop3S", "1Pop4S"):
+        return _symmetric_jacobian(reduced, payoff_data)
+    if isinstance(payoff_data, tuple) and game_class == "2Pop2S":
+        return _jacobian_2p2s(reduced, payoff_data)
+    if isinstance(payoff_data, tuple) and game_class == "3Pop2S":
+        return _jacobian_3p2s(reduced, payoff_data)
+    raise ValueError(f"No replicator Jacobian for game class {game_class!r}.")
 
 
 def compute_equilibria(payoff_data: Union[PayoffMatrix, PayoffCollection]) -> EquilibriumResult:

@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: Publish a beta pre-release (e.g. 1.0.0b1)
+        type: boolean
+        default: false
+
+# Tags pushed with the default token don't trigger other workflows, so
+# testing, tagging, building and publishing all happen in this one workflow.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+
+  release:
+    name: Version, changelog, tag and GitHub release
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      released: ${{ steps.semrel.outputs.released }}
+      tag: ${{ steps.semrel.outputs.tag }}
+    steps:
+      # The release-bot app is a bypass actor on the master ruleset, so it can
+      # push the version commit and tag; the default token cannot.
+      - id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+          token: ${{ steps.app-token.outputs.token }}
+      # Release exactly the commit that was tested, never a newer one.
+      - name: Reset to the tested commit
+        run: git reset --hard ${{ github.sha }}
+      - id: semrel
+        uses: python-semantic-release/python-semantic-release@v10.7.0
+        with:
+          github_token: ${{ steps.app-token.outputs.token }}
+          prerelease: ${{ inputs.prerelease || false }}
+
+  build:
+    name: Build distributions
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  pypi:
+    name: Publish to PyPI
+    needs: [release, build]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-assets:
+    name: Attach distributions to the GitHub release
+    needs: [release, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - run: gh release upload "${{ needs.release.outputs.tag }}" dist/* --repo "${{ github.repository }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

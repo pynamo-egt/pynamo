@@ -25,3 +25,14 @@ assert pn.phase_portrait is pn.drawer.phase_portrait
 assert pn.interactive is pn.interactive
 assert callable(pn.interactive.launch_replicator_widget)
 '''], check=True, capture_output=True, text=True)
+
+
+def test_analysis_works_without_sympy():
+    subprocess.run([sys.executable, '-c', '''
+import sys
+sys.modules['sympy'] = None
+import pynamo_egt as pn
+for game in (pn.examples.games.good_rps, pn.examples.games.matching_pennies,
+             pn.examples.games.cyclic_mismatching_pennies):
+    assert pn.analyze_equilibria(game).equilibria
+'''], check=True, capture_output=True, text=True)

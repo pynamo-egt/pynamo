@@ -18,7 +18,6 @@ dependencies = [
     "numpy>=1.26",
     "pandas>=2.1.1",
     "scipy>=1.11.2",
-    "sympy>=1.12",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -45,6 +44,8 @@ plotly = [
 ]
 dev = [
     "pytest>=7.4",
+    # Differential oracle for the rest-point solver and Jacobians.
+    "sympy>=1.12",
 ]
 docs = [
     "ipykernel>=6.25",

@@ -4,7 +4,8 @@ This reproduces how pyNamo computed rest points before the face-enumeration
 solver: one call to SymPy ``solve`` on the whole replicator system.
 """
 
-from sympy import Symbol, solve
+import numpy as np
+from sympy import Matrix, Symbol, solve
 
 from pynamo_egt import dynamics
 from pynamo_egt.game import infer_game_class
@@ -35,3 +36,11 @@ def sympy_rest_points(payoff_data) -> tuple[list[list[float]], bool]:
         except (KeyError, TypeError):
             return [], False
     return points, True
+
+
+def sympy_jacobian(payoff_data, reduced) -> np.ndarray:
+    """Jacobian of the replicator field at ``reduced``, differentiated symbolically."""
+    dimension, field = _FIELDS[infer_game_class(payoff_data)]
+    symbols = [Symbol(name) for name in "xyz"[:dimension]]
+    jacobian = Matrix(field(symbols, 0, payoff_data)).jacobian(Matrix(symbols))
+    return np.array(jacobian.subs(dict(zip(symbols, reduced))), dtype=float)

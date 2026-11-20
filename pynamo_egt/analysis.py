@@ -11,8 +11,6 @@ from typing import List, Optional
 import warnings
 
 import numpy as np
-from sympy import Matrix
-from sympy.abc import x, y, z
 
 from . import dynamics
 from .game import infer_game_class, require_supported_game_class
@@ -342,60 +340,9 @@ def _payoff_data(game):
 
 
 def _eigen_data(reduced, payoff_data, game_class):
-    if game_class == "1Pop3S":
-        field = Matrix(dynamics.replicator_2p3s([x, y], 0, payoff_data))
-        jacobian = field.jacobian(Matrix([x, y]))
-        matrix = np.array(jacobian.subs([(x, reduced[0]), (y, reduced[1])]), dtype=float)
-        return np.linalg.eig(matrix)
-
-    if game_class == "2Pop2S":
-        field = Matrix(dynamics.replicator_2p2s([x, y], 0, payoff_data))
-        jacobian = field.jacobian(Matrix([x, y]))
-        matrix = np.array(jacobian.subs([(x, reduced[0]), (y, reduced[1])]), dtype=float)
-        return np.linalg.eig(matrix)
-
-    if game_class == "1Pop4S":
-        field = Matrix(dynamics.replicator_2p4s([x, y, z], 0, payoff_data))
-        jacobian = field.jacobian(Matrix([x, y, z]))
-        matrix = np.array(
-            jacobian.subs([(x, reduced[0]), (y, reduced[1]), (z, reduced[2])]),
-            dtype=float,
-        )
-        return np.linalg.eig(matrix)
-
-    if game_class == "3Pop2S":
-        matrix = _numeric_jacobian(
-            lambda state: dynamics.replicator_3p2s(state, 0, payoff_data), reduced
-        )
-        return np.linalg.eig(matrix)
-
-    return None
-
-
-def _numeric_jacobian(field_function, point, eps: float = 1e-6):
-    point = np.asarray(point, dtype=float)
-    f0 = np.asarray(field_function(point), dtype=float)
-    jacobian = np.zeros((point.size, point.size), dtype=float)
-    for axis in range(point.size):
-        if point[axis] <= eps:
-            perturbed = point.copy()
-            perturbed[axis] += eps
-            f1 = np.asarray(field_function(perturbed), dtype=float)
-            jacobian[:, axis] = (f1 - f0) / eps
-        elif point[axis] >= 1.0 - eps:
-            perturbed = point.copy()
-            perturbed[axis] -= eps
-            f1 = np.asarray(field_function(perturbed), dtype=float)
-            jacobian[:, axis] = (f0 - f1) / eps
-        else:
-            forward = point.copy()
-            backward = point.copy()
-            forward[axis] += eps
-            backward[axis] -= eps
-            f_forward = np.asarray(field_function(forward), dtype=float)
-            f_backward = np.asarray(field_function(backward), dtype=float)
-            jacobian[:, axis] = (f_forward - f_backward) / (2.0 * eps)
-    return jacobian
+    if game_class not in ("1Pop3S", "1Pop4S", "2Pop2S", "3Pop2S"):
+        return None
+    return np.linalg.eig(dynamics.replicator_jacobian(reduced, payoff_data))
 
 
 def _full_position(reduced, game_class):

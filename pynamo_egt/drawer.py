@@ -18,6 +18,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from . import analysis
 from . import dynamics
 from .game import infer_game_class, require_supported_game_class
+from .state_space import _POPULATIONS as _GAME_CLASS_POPULATIONS, StateSpace
 
 __all__ = [
     "PlottingWarning",
@@ -1521,82 +1522,9 @@ def _speed_regions(game_class):
 
 
 def _default_starts(game_class, random_state, trajectory_number=4):
-    if (
-        not isinstance(trajectory_number, int)
-        or isinstance(trajectory_number, bool)
-        or trajectory_number < 1
-    ):
-        raise ValueError("trajectory_number must be a positive integer.")
-
-    if random_state is not None:
-        rng = np.random.default_rng(random_state)
-        if game_class == "1Pop3S":
-            return rng.dirichlet(np.ones(3), size=trajectory_number)[:, :2].tolist()
-        if game_class == "1Pop4S":
-            return rng.dirichlet(np.ones(4), size=trajectory_number)[:, :3].tolist()
-        if game_class in ("2Pop2S", "3Pop2S"):
-            dimension = 2 if game_class == "2Pop2S" else 3
-            return rng.uniform(0.05, 0.95, size=(trajectory_number, dimension)).tolist()
-
-    if game_class == "1Pop3S":
-        return _simplex_partition_centroids(3, trajectory_number)[:, :2].tolist()
-    if game_class == "1Pop4S":
-        return _simplex_partition_centroids(4, trajectory_number)[:, :3].tolist()
-    if game_class == "2Pop2S":
-        return _box_partition_centroids(2, trajectory_number).tolist()
-    if game_class == "3Pop2S":
-        return _box_partition_centroids(3, trajectory_number).tolist()
-    raise ValueError(f"Unsupported game class: {game_class}")
-
-
-def _simplex_partition_centroids(strategy_count, count):
-    """Return centroids of a deterministic recursive simplex partition."""
-    cells = [np.eye(strategy_count)]
-
-    def volume_measure(vertices):
-        edges = vertices[1:] - vertices[0]
-        return np.sqrt(max(np.linalg.det(edges @ edges.T), 0.0))
-
-    while len(cells) < count:
-        cell_index = max(range(len(cells)), key=lambda index: volume_measure(cells[index]))
-        vertices = cells.pop(cell_index)
-        pairs = [
-            (i, j)
-            for i in range(strategy_count)
-            for j in range(i + 1, strategy_count)
-        ]
-        first, second = max(
-            pairs,
-            key=lambda pair: np.linalg.norm(vertices[pair[0]] - vertices[pair[1]]),
-        )
-        midpoint = (vertices[first] + vertices[second]) / 2
-        child_1 = vertices.copy()
-        child_2 = vertices.copy()
-        child_1[first] = midpoint
-        child_2[second] = midpoint
-        cells.extend([child_1, child_2])
-
-    return np.asarray([cell.mean(axis=0) for cell in cells])
-
-
-def _box_partition_centroids(dimension, count):
-    """Return centroids of a deterministic recursive unit-box partition."""
-    boxes = [(np.zeros(dimension), np.ones(dimension))]
-    while len(boxes) < count:
-        box_index = max(
-            range(len(boxes)),
-            key=lambda index: np.prod(boxes[index][1] - boxes[index][0]),
-        )
-        lower, upper = boxes.pop(box_index)
-        split_dimension = int(np.argmax(upper - lower))
-        midpoint = (lower[split_dimension] + upper[split_dimension]) / 2
-        upper_1 = upper.copy()
-        upper_1[split_dimension] = midpoint
-        lower_2 = lower.copy()
-        lower_2[split_dimension] = midpoint
-        boxes.extend([(lower, upper_1), (lower_2, upper)])
-
-    return np.asarray([(lower + upper) / 2 for lower, upper in boxes])
+    return StateSpace(_GAME_CLASS_POPULATIONS[game_class]).default_starts(
+        trajectory_number, random_state
+    )
 
 
 def _vector_field_2p2s(payoff_data, grid, margin):

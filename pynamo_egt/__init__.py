@@ -1,8 +1,11 @@
 """Replicator dynamics, analysis, and plotting for evolutionary games."""
 from importlib import import_module
 
-from . import analysis, drawer, dynamics, examples, game
+from . import analysis, drawer, dynamics, examples, game, render
 from .game import Game
+from .dynamics import Replicator
+from .state_space import StateSpace
+from ._scene import scene
 from .drawer import phase_portrait, bifurcation_diagram
 from .analysis import (
     analyze_equilibria, equilibrium_table,
@@ -15,6 +18,7 @@ __all__ = [
     "Game", "phase_portrait", "bifurcation_diagram", "phase_portrait_html",
     "analyze_equilibria", "equilibrium_table",
     "rest_points_nash", "rest_points_strict_nash", "rest_points_ess",
+    "scene", "Replicator", "StateSpace", "render",
     "analysis", "drawer", "dynamics", "examples", "game", "interactive",
 ]
 

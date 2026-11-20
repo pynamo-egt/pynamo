@@ -23,9 +23,20 @@ python -m pytest -q
 
 Add the `notebook` extra (`pip install -e ".[dev,plotly,notebook]"`) to work on the Jupyter widget or the tutorials.
 
+## Which branch?
+
+pyNamo-EGT has two tracks while the 0.4 release is under review at JOSS:
+
+| Branch | For | Releases |
+| --- | --- | --- |
+| `master` | bug fixes and small improvements to 0.4 | every `fix`/`perf` merge publishes a 0.4.x release |
+| `1.0` | the new engine and everything else planned for 1.0 | none until 1.0 |
+
+Open your pull request against `master` if it fixes 0.4, and against `1.0` otherwise. After each fix lands on `master`, a maintainer opens a "merge `master` into `1.0`" pull request and merges it with a **merge commit** (not a squash), so the fix isn't applied twice. When 1.0 is ready, `1.0` is merged into `master` the same way.
+
 ## Making a change
 
-1. Branch from `master`.
+1. Branch from `master` or `1.0` (see above).
 2. Keep the change small and focused: one issue per pull request, ideally under ~400 changed lines.
 3. Add or update tests in the same pull request. Good tests check behaviour through the public API (analysis results, figure contents), are deterministic (seed any randomness) and are named after the behaviour they check.
 4. Keep existing behaviour working. Code written for earlier 0.x releases must keep running; if your change alters an existing output, say so in the pull request description and cover it with a test. Deprecated behaviour keeps working, with a `DeprecationWarning`, until the next major release and for at least six months.
@@ -33,7 +44,7 @@ Add the `notebook` extra (`pip install -e ".[dev,plotly,notebook]"`) to work on 
 
 ## Pull request titles
 
-Pull requests are squash-merged, and the **PR title becomes the commit message** on `master`. Releases are computed from these messages, so titles must follow [Conventional Commits](https://www.conventionalcommits.org/); a CI check enforces this.
+Pull requests are squash-merged, and the **PR title becomes the commit message**. Releases are computed from these messages, so titles must follow [Conventional Commits](https://www.conventionalcommits.org/); a CI check enforces this.
 
 ```text
 <type>(<optional scope>): <short summary in the imperative>
@@ -54,15 +65,15 @@ When a change depends on another pull request that is not merged yet:
 
 - branch from the parent pull request's branch and set your PR's base to it;
 - keep stacks short (at most three);
-- they are merged bottom-up. After the bottom PR is squash-merged, rebase the next branch onto `master`, using the old parent tip as the upstream, and force-push with lease:
+- they are merged bottom-up. After the bottom PR is squash-merged, rebase the next branch onto the target branch (`master` or `1.0`), using the old parent tip as the upstream, and force-push with lease:
 
   ```bash
-  git rebase --onto master <old-parent-tip> <your-branch>
+  git rebase --onto <target-branch> <old-parent-tip> <your-branch>
   git push --force-with-lease
   ```
 
-Independent changes should branch from `master`.
+Independent changes should branch from the target branch.
 
 ## Releases
 
-Maintainers don't release by hand. Every merged `feat`, `fix` or `perf` pull request triggers a release: the version number, the changelog, the Git tag, the GitHub release and the PyPI upload are all produced automatically from the conventional PR titles.
+Maintainers don't release by hand. Every `feat`, `fix` or `perf` pull request merged into `master` triggers a release: the version number, the changelog, the Git tag, the GitHub release and the PyPI upload are all produced automatically from the conventional PR titles.

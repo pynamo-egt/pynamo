@@ -254,6 +254,11 @@ class Game:
         ]
 
         payoffs = np.empty((players, strategy_count), dtype=float)
+        if players == 2:
+            # Focal-player layout: each matrix's rows are its own player's strategies.
+            for idx, matrix in enumerate(self._payoff):  # type: ignore[iterable]
+                payoffs[idx] = matrix @ vectors[1 - idx]
+            return payoffs
         for idx, matrix in enumerate(self._payoff):  # type: ignore[iterable]
             result = matrix
             for axis in reversed(range(players)):

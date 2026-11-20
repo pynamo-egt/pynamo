@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 
 from . import _rest_points
-from .game import PayoffCollection, PayoffMatrix, require_supported_game_class
+from .game import PayoffCollection, PayoffMatrix, infer_game_class, require_supported_game_class
 
 __all__ = [
     "DegenerateEquilibriumWarning",

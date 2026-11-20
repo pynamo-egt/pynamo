@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import string
 import warnings
 from typing import Iterable, List, Optional, Sequence, Tuple, Union
 
@@ -71,7 +72,8 @@ class Game:
             `payoff_player_1[i, j]` is player 1's payoff when player 1 uses
             strategy i and player 2 uses strategy j, while
             `payoff_player_2[i, j]` is player 2's payoff when player 2 uses
-            strategy i and player 1 uses strategy j.
+            strategy i and player 1 uses strategy j. Use `Game.bimatrix` to
+            pass player 2's matrix in the textbook layout instead.
 
             For asymmetric 3-player / 2-strategy games, pass a tuple
             `(payoff_player_1, payoff_player_2, payoff_player_3)`, where each
@@ -175,6 +177,211 @@ class Game:
         self._ensure_label_defaults()
         self._ensure_player_label_defaults()
 
+    # Accessed on the class, ``Game.symmetric`` is this constructor; on an
+    # instance, the boolean set in ``__init__`` shadows it.
+    @classmethod
+    def symmetric(
+        cls,
+        matrix: Union[PayoffMatrix, Sequence[Sequence[float]]],
+        labels: Optional[Sequence[str]] = None,
+        *,
+        name: str = "",
+        **metadata: str,
+    ) -> Game:
+        """Build a one-population game from a square payoff matrix.
+
+        Parameters
+        ----------
+        matrix : array-like of shape (n, n)
+            ``matrix[i, j]`` is the payoff to strategy i against strategy j.
+        labels : sequence of str, optional
+            One label per strategy. Defaults to ``S1, ..., Sn``.
+        name : str, default=""
+            Human-readable name of the game.
+        **metadata : str
+            ``description``, ``reference``, ``reference_note``, ``parameters``
+            or ``illustrates``, forwarded to `Game`.
+
+        Returns
+        -------
+        Game
+
+        Examples
+        --------
+        >>> rps = Game.symmetric([[0, -1, 1], [1, 0, -1], [-1, 1, 0]], ["R", "P", "S"])
+        >>> rps.populations
+        (3,)
+        """
+        array = np.asarray(matrix, dtype=float)
+        if array.ndim != 2 or array.shape[0] != array.shape[1]:
+            raise ValueError(
+                f"Game.symmetric expects a square 2-D matrix; got shape {array.shape}."
+            )
+        if labels is not None:
+            _check_labels(labels, array.shape[0], "labels")
+        return cls(name, array, strategy_labels=labels, symmetric=True, **metadata)
+
+    @classmethod
+    def bimatrix(
+        cls,
+        A: Union[PayoffMatrix, Sequence[Sequence[float]]],
+        B: Union[PayoffMatrix, Sequence[Sequence[float]]],
+        labels: Optional[Sequence[Sequence[str]]] = None,
+        *,
+        name: str = "",
+        player_labels: Optional[Sequence[str]] = None,
+        **metadata: str,
+    ) -> Game:
+        """Build a two-population game from a bimatrix in textbook layout.
+
+        Rows are player 1's strategies and columns player 2's strategies in
+        *both* matrices. The game is stored in the focal-player layout, so
+        ``Game.bimatrix(A, B)`` is equivalent to ``Game(name, (A, B.T))``.
+
+        Parameters
+        ----------
+        A, B : array-like of shape (n, n)
+            ``A[i, j]`` and ``B[i, j]`` are the payoffs to player 1 and player 2
+            when player 1 plays i and player 2 plays j.
+        labels : pair of sequences of str, optional
+            Strategy labels per player, e.g. ``[["Hawk", "Dove"], ["Hawk", "Dove"]]``.
+        name : str, default=""
+            Human-readable name of the game.
+        player_labels : sequence of str, optional
+            One label per player, e.g. ``["Row", "Column"]``.
+        **metadata : str
+            ``description``, ``reference``, ``reference_note``, ``parameters``
+            or ``illustrates``, forwarded to `Game`.
+
+        Returns
+        -------
+        Game
+
+        Examples
+        --------
+        >>> dilemma = Game.bimatrix([[3, 0], [5, 1]], [[3, 5], [0, 1]])
+        >>> dilemma.populations
+        (2, 2)
+        """
+        row, col = np.asarray(A, dtype=float), np.asarray(B, dtype=float)
+        if row.ndim != 2 or col.ndim != 2:
+            raise ValueError(
+                f"A and B must be 2-D matrices; got shapes {row.shape} and {col.shape}."
+            )
+        if row.shape != col.shape:
+            raise ValueError(
+                f"A and B must have the same shape; got {row.shape} and {col.shape}."
+            )
+        if row.shape[0] != row.shape[1]:
+            raise ValueError(
+                "pyNamo currently requires both players to have the same number of "
+                f"strategies; got matrices of shape {row.shape}."
+            )
+        strategy_labels = None
+        if labels is not None:
+            if isinstance(labels, str) or len(labels) != 2 or any(
+                isinstance(entry, str) for entry in labels
+            ):
+                raise ValueError(
+                    "labels must be a pair of strategy-label lists, one per player, "
+                    "e.g. [['Hawk', 'Dove'], ['Hawk', 'Dove']]."
+                )
+            for player, entry in enumerate(labels, start=1):
+                _check_labels(entry, row.shape[0], f"labels for player {player}")
+            if list(labels[0]) == list(labels[1]):
+                strategy_labels = labels[0]
+        return cls(
+            name,
+            (row, col.T),
+            strategy_labels=strategy_labels,
+            player_strategy_labels=labels,
+            player_labels=player_labels,
+            symmetric=False,
+            **metadata,
+        )
+
+    @property
+    def populations(self) -> Tuple[int, ...]:
+        """Number of strategies in each population, e.g. ``(2, 2)`` for 2Pop2S."""
+        if self.symmetric:
+            return (self._payoff.shape[0],)  # type: ignore[union-attr]
+        return tuple(self._payoff[0].shape)  # type: ignore[index]
+
+    @property
+    def labels(self) -> Tuple[Tuple[str, ...], ...]:
+        """Strategy labels of each population."""
+        return tuple(tuple(entry) for entry in self.player_strategy_labels)
+
+    @property
+    def is_linear(self) -> bool:
+        """Whether payoffs are linear in each opponent state (always True for matrix games)."""
+        return True
+
+    @property
+    def matrices(self) -> PayoffCollection:
+        """Payoff matrix (or tensor) of each population, as used by `payoffs`.
+
+        One-population games give ``(A,)``. Two-population games use the
+        focal-player layout: ``Game.bimatrix(A, B).matrices`` is ``(A, B.T)``.
+        Three-population tensors are indexed ``[i, j, k]`` by the strategies
+        of players 1, 2 and 3.
+        """
+        if self.symmetric:
+            return (self._payoff,)  # type: ignore[return-value]
+        return self._payoff  # type: ignore[return-value]
+
+    def payoffs(self, x: Sequence[np.ndarray]) -> Tuple[np.ndarray, ...]:
+        """Payoff of every pure strategy, vectorised over a batch of states.
+
+        Parameters
+        ----------
+        x : sequence of array-like
+            One array per population in full coordinates, of shape
+            ``(..., n_p)`` for population p. Batch shapes must broadcast.
+
+        Returns
+        -------
+        tuple of numpy.ndarray
+            One array of shape ``(..., n_p)`` per population.
+
+        Examples
+        --------
+        >>> game = Game.symmetric([[1, 0], [0, 2]])
+        >>> game.payoffs([[[1.0, 0.0], [0.0, 1.0]]])[0].tolist()
+        [[1.0, 0.0], [0.0, 2.0]]
+        """
+        sizes = self.populations
+        states = [np.asarray(state, dtype=float) for state in x]
+        if len(states) != len(sizes):
+            raise ValueError(
+                f"Expected {len(sizes)} population state(s); got {len(states)}."
+            )
+        for p, (state, size) in enumerate(zip(states, sizes)):
+            if state.ndim == 0 or state.shape[-1] != size:
+                raise ValueError(
+                    f"State of population {p + 1} must have shape (..., {size}); "
+                    f"got {state.shape}."
+                )
+
+        matrices = self.matrices
+        if len(states) == 1:
+            return (np.einsum("ij,...j->...i", matrices[0], states[0]),)
+        if len(states) == 2:
+            # Focal-player layout: each matrix's rows are its own player's strategies.
+            return (
+                np.einsum("ij,...j->...i", matrices[0], states[1]),
+                np.einsum("ij,...j->...i", matrices[1], states[0]),
+            )
+        axes = string.ascii_letters[: len(states)]
+        results = []
+        for p, tensor in enumerate(matrices):
+            others = [q for q in range(len(states)) if q != p]
+            spec = ",".join([axes] + [f"...{axes[q]}" for q in others])
+            results.append(
+                np.einsum(f"{spec}->...{axes[p]}", tensor, *(states[q] for q in others))
+            )
+        return tuple(results)
+
     @property
     def payoff_data(self) -> Union[PayoffMatrix, PayoffCollection]:
         """Return the underlying payoff representation."""
@@ -232,7 +439,11 @@ class Game:
             ) from exc
 
     def expected_payoffs(self, mixed_strategies: Sequence[Sequence[float]]) -> np.ndarray:
-        """Expected payoff to each pure strategy under the supplied mixed strategies."""
+        """Expected payoff to each pure strategy under the supplied mixed strategies.
+
+        Single-state counterpart of `payoffs`: one-population games return a
+        vector, multi-population games one row per population.
+        """
         strategy_count = self.num_strategies()
 
         if self.symmetric:
@@ -241,7 +452,7 @@ class Game:
                     "Symmetric games expect a single population mixed strategy."
                 )
             sigma = self._as_probability_vector(mixed_strategies[0], strategy_count)
-            return self._payoff @ sigma  # type: ignore[return-value]
+            return self.payoffs([sigma])[0]
 
         players = len(self._payoff)  # type: ignore[arg-type]
         if len(mixed_strategies) != players:
@@ -252,16 +463,7 @@ class Game:
         vectors = [
             self._as_probability_vector(sigma, strategy_count) for sigma in mixed_strategies
         ]
-
-        payoffs = np.empty((players, strategy_count), dtype=float)
-        for idx, matrix in enumerate(self._payoff):  # type: ignore[iterable]
-            result = matrix
-            for axis in reversed(range(players)):
-                if axis == idx:
-                    continue
-                result = np.tensordot(result, vectors[axis], axes=([axis], [0]))
-            payoffs[idx] = result
-        return payoffs
+        return np.stack(self.payoffs(vectors))
 
     def _normalize_payoff(
         self, payoffs: RawPayoffData
@@ -365,6 +567,13 @@ class Game:
         if not np.isclose(total, 1.0, atol=1e-8):
             raise ValueError("Mixed strategies must sum to 1.")
         return vector
+
+
+def _check_labels(labels: Sequence[str], count: int, what: str) -> None:
+    """Raise ``ValueError`` unless ``labels`` names exactly ``count`` strategies."""
+    if isinstance(labels, str) or len(labels) != count:
+        given = 1 if isinstance(labels, str) else len(labels)
+        raise ValueError(f"{what} must name each of the {count} strategies; got {given}.")
 
 
 def game_names(games: Iterable[Tuple[int, Game]]) -> dict:

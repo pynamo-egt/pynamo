@@ -16,6 +16,7 @@ plt.show()
 :maxdepth: 2
 
 installation
+game_conventions
 tutorial_web
 auto_examples/index
 api

@@ -23,6 +23,7 @@ __all__ = [
     "compute_equilibria",
     "replicator_jacobian",
     "replicator_1d",
+    "Replicator",
 ]
 
 
@@ -305,3 +306,48 @@ def replicator_1d(x, payoffs):
     x = np.asarray(x, dtype=float)
     u, v = _coefficients_1d(payoffs)
     return x * (1 - x) * (u + v * x)
+
+
+_FIELDS = {
+    "1Pop3S": replicator_2p3s,
+    "1Pop4S": replicator_2p4s,
+    "2Pop2S": replicator_2p2s,
+    "3Pop2S": replicator_3p2s,
+}
+
+
+class Replicator:
+    """The replicator dynamic, as an object usable by scenes and analysis.
+
+    Attributes
+    ----------
+    smooth : bool
+        The vector field is differentiable everywhere.
+    boundary_invariant : bool
+        Faces of the state space are invariant, so edge flow can be drawn.
+    nash_stationary : bool
+        Rest points are exactly the Nash equilibria (False: the replicator also
+        rests at non-Nash restricted equilibria).
+    """
+
+    name = "replicator"
+    smooth = True
+    boundary_invariant = True
+    nash_stationary = False
+
+    def velocity(self, game, reduced: np.ndarray) -> np.ndarray:
+        """Velocity in reduced coordinates for a batch of states, shape ``(..., d)``."""
+        payoff_data = getattr(game, "payoff_data", game)
+        game_class = require_supported_game_class(payoff_data)
+        states = np.asarray(reduced, dtype=float)
+        if game_class == "1Pop2S":
+            return replicator_1d(states, payoff_data)
+        coordinates = np.moveaxis(states, -1, 0)
+        return np.moveaxis(np.asarray(_FIELDS[game_class](coordinates, 0, payoff_data)), 0, -1)
+
+    def jacobian(self, game, reduced: np.ndarray) -> np.ndarray:
+        """Jacobian of :meth:`velocity` at one state, in reduced coordinates."""
+        return replicator_jacobian(np.asarray(reduced, dtype=float), getattr(game, "payoff_data", game))
+
+    def __repr__(self) -> str:
+        return "Replicator()"

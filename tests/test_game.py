@@ -107,3 +107,17 @@ def test_game_names_is_deprecated_but_still_works():
     rps = game.Game("RPS", np.array([[0, -1, 1], [1, 0, -1], [-1, 1, 0]], dtype=float))
     with pytest.warns(DeprecationWarning, match="game_names is deprecated"):
         assert game.game_names([(7, rps)]) == {7: "RPS"}
+
+
+@pytest.mark.parametrize("game_class", ["2Pop2S", "3Pop2S"])
+def test_expected_payoffs_agree_with_the_replicator_field(game_class):
+    from pynamo_egt import dynamics, examples
+
+    field = {"2Pop2S": dynamics.replicator_2p2s, "3Pop2S": dynamics.replicator_3p2s}[game_class]
+    rng = np.random.default_rng(0)
+    for name, g in examples.games.by_class(game_class).items():
+        for _ in range(5):
+            first = rng.uniform(0.05, 0.95, size=g.num_players())
+            payoffs = g.expected_payoffs([[p, 1 - p] for p in first])
+            expected = first * (1 - first) * (payoffs[:, 0] - payoffs[:, 1])
+            np.testing.assert_allclose(field(first, 0, g.payoff_data), expected, err_msg=name)

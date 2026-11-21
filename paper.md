@@ -18,7 +18,7 @@ affiliations:
     index: 1
   - name: Independent Researcher
     index: 2
-date: 19 October 2026
+date: 20 November 2026
 bibliography: paper.bib
 ---
 
@@ -26,7 +26,7 @@ bibliography: paper.bib
 
 We present `pyNamo-EGT`, a Python package for drawing phase portraits in evolutionary game theory. Its first version focuses on the replicator dynamics. It allows users to plot the phase portrait for the replicator dynamics of symmetric games (with up to four strategies) and asymmetric games (with up to three populations), producing publication-quality Matplotlib figures with trajectories, speed fields, vector fields, rest points, and stability markers (\autoref{fig:examples}).
 
-The package covers the full analytical pipeline: defining a game by its payoff matrix (or matrices, for asymmetric games), computing the rest points of the replicator dynamics and classifying their stability, and rendering the phase portrait in a single high-level call. It ships with a curated catalogue of named example games (e.g., Rock–Paper–Scissors, Hawk–Dove, Matching Pennies, etc.) with descriptions, references, and parameter notes, and an interactive Jupyter widget for exploratory use. `pyNamo-EGT` is available on PyPI, with interactive tutorials on Binder and Google Colab, making it immediately accessible without a local installation.
+The package covers the full analytical pipeline: defining a game by its payoff matrix (or matrices, for asymmetric games), computing the rest points of the replicator dynamics and classifying their stability, and rendering the phase portrait in a single high-level call. It ships with a curated catalogue of named example games (e.g., Rock–Paper–Scissors, Hawk–Dove, Matching Pennies, etc.) with descriptions, references, and parameter notes, and an interactive Jupyter widget for exploratory use. For 3D game classes, the package also exports self-contained interactive HTML phase portraits via `phase_portrait_html()`. `pyNamo-EGT` is available on PyPI, with interactive tutorials on Binder and Google Colab, making it immediately accessible without a local installation.
 
 ![Phase portraits of the replicator dynamics for four games, produced by `pyNamo-EGT`: Rock–Paper–Scissors (top left) [@Sandholm2010], two-population Hawk–Dove (top right) [@MaynardSmithPrice1973; @HofbauerSigmund1998], four-strategy chaotic dynamics (bottom left) [@Arneodo1980], and asymmetric three-population cyclic mismatching pennies (bottom right) [@Sandholm2010]. In the 2D plots (top), a black dot is a sink, a gray-filled dot is a saddle, and a white-filled dot is a source. The color gradient in the 2D plots represents the speed of the replicator dynamics, from slow (dark) to fast (light). In the 3D plots (bottom), a black sphere is a sink, a dark gray sphere is a saddle, and a light gray sphere is a source. \label{fig:examples}](gallery.pdf){width=100%}
 
@@ -102,11 +102,11 @@ We finally mention how we deal with limitations of the automatic rest point dete
 
 # Research impact statement
 
-Our package has been used in a scientific preprint on the evolution of behavioral plasticity by the first author [@Dridi2019] and has received more than 450 downloads from PyPI in the month of October 2026.
+Our package has been used in a scientific preprint on the evolution of behavioral plasticity by the first author [@Dridi2019] and has received more than 500 downloads from PyPI.
 
 # AI usage disclosure
 
-The package development started before the advent of AI, so the core of the code was written by the authors. The design philosophy and ideas for features were in place from the start, before we had access to agentic AI. More recently, AI agents (more specifically, ChatGPT's Codex and Claude Code) were used to help implement new ideas. AI was also used to help edit parts of this manuscript. All code was thoroughly reviewed, tested, and when necessary modified by the authors before integration in the package. All text produced with AI assistance was reviewed and edited by the authors before inclusion in this article.
+The package development started before the advent of AI, so the core of the code was written by the authors. The design philosophy and ideas for features were in place from the start, before we had access to agentic AI. More recently, AI agents (more specifically, ChatGPT's Codex, Copilot, and Claude Code) were used to help implement new ideas. AI was also used to help edit parts of this manuscript. All code was thoroughly reviewed, tested, and when necessary modified by the authors before integration in the package. All text produced with AI assistance was reviewed and edited by the authors before inclusion in this article.
 
 # Acknowledgements
 

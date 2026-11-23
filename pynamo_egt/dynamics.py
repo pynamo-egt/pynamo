@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 
 from . import _rest_points
-from .game import PayoffCollection, PayoffMatrix, infer_game_class, require_supported_game_class
+from .game import PayoffCollection, PayoffMatrix, require_supported_game_class
 
 __all__ = [
     "DegenerateEquilibriumWarning",
@@ -227,7 +227,7 @@ def replicator_jacobian(
     reduced: np.ndarray, payoff_data: Union[PayoffMatrix, PayoffCollection]
 ) -> np.ndarray:
     """Jacobian of the replicator field at ``reduced`` for a 1Pop3S, 1Pop4S, 2Pop2S or 3Pop2S game."""
-    game_class = infer_game_class(payoff_data)
+    game_class = require_supported_game_class(payoff_data)
     if isinstance(payoff_data, np.ndarray) and game_class in ("1Pop3S", "1Pop4S"):
         return _symmetric_jacobian(reduced, payoff_data)
     if isinstance(payoff_data, tuple) and game_class == "2Pop2S":

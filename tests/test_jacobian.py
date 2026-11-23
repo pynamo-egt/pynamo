@@ -46,3 +46,8 @@ def test_closed_form_jacobian_matches_symbolic_derivative_on_catalogue_rest_poin
 def test_jacobian_rejects_one_dimensional_games():
     with pytest.raises(ValueError, match="1Pop2S"):
         dynamics.replicator_jacobian(np.array([0.5]), np.eye(2))
+
+
+def test_jacobian_rejects_unsupported_game_sizes():
+    with pytest.raises(ValueError, match="Supported game classes"):
+        dynamics.replicator_jacobian(np.full(4, 0.2), np.eye(5))
